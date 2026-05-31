@@ -440,16 +440,59 @@ export const renderRecipeCreator = (container) => {
       const trimmedUrl = imageUrl.trim();
       if (trimmedUrl.length === 0) return;
 
-      if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
-        showToast('Please enter a valid HTTP or HTTPS image URL!', 'error');
-        return;
-      }
-
       if (!isAuthorized) {
         showToast(
           'Image pull requires Live GitHub Sync. Please connect your GitHub account!',
           'warning'
         );
+        return;
+      }
+
+      // Handle direct data:image URLs without fetching
+      if (trimmedUrl.startsWith('data:image/')) {
+        showToast('Processing data URL image...', 'info');
+        try {
+          const parts = trimmedUrl.split(',');
+          if (parts.length < 2) {
+            throw new Error('Invalid Data URL format');
+          }
+          const meta = parts[0];
+          const base64Data = parts[1];
+
+          // Try to extract file extension from mime type (e.g., "data:image/png;base64")
+          const mimeMatch = meta.match(/data:image\/([a-zA-Z0-9+]+);/);
+          const fileExt = mimeMatch ? mimeMatch[1] : 'jpg';
+          const safeExt = fileExt === 'svg+xml' ? 'svg' : fileExt;
+
+          const cleanTitle = (formState.title || 'recipe')
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '');
+          const generatedFileName = `${cleanTitle}-data-${Date.now()}.${safeExt}`;
+
+          showToast('Uploading data image to your GitHub repository...', 'info');
+
+          await commitImageFile(githubConfig, generatedFileName, base64Data);
+
+          const finalPath = `images/${generatedFileName}`;
+          formState.image = finalPath;
+          const imageInput = document.getElementById('recipe-image');
+          if (imageInput) {
+            imageInput.value = finalPath;
+          }
+
+          showToast('Data URL image successfully parsed, saved, and synced offline!', 'success');
+          renderRecipeCreator(container);
+          return;
+        } catch (dataUrlErr) {
+          showToast(`Failed to parse data URL: ${dataUrlErr.message}`, 'error');
+          return;
+        }
+      }
+
+      if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+        showToast('Please enter a valid HTTP, HTTPS, or data:image URL!', 'error');
         return;
       }
 
