@@ -5,7 +5,7 @@ prepTime: "15 mins"
 cookTime: "30 mins"
 servings: 4
 difficulty: "Easy"
-image: "images/placeholder.jpg"
+image: "images/collard-greens-data-1780263044311.jpeg"
 categories: ["Main Course"]
 tags: []
 ---
