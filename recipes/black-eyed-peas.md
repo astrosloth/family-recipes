@@ -5,7 +5,7 @@ prepTime: "15 mins"
 cookTime: "25 min"
 servings: 4
 difficulty: "Easy"
-image: "images/placeholder.jpg"
+image: "images/black-eyed-peas-data-1780262657274.jpeg"
 categories: ["Main Course"]
 tags: []
 ---
@@ -22,7 +22,7 @@ tags: []
 - 1 tsp dried cilantro/oregano
 - 1½ tsp salt
 - 1 tsp black pepper, ground
-- 1lb dry black-eyed peas, rinsed
+- 1 lb dry black-eyed peas, rinsed
 - 3-4 bay leaves
 - 4 cups broth
 - 1 tbsp apple cider vinegar
