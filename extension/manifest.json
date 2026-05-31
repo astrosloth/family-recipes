@@ -7,12 +7,15 @@
   "host_permissions": ["https://api.github.com/*"],
   "action": {
     "default_popup": "popup.html",
-    "default_icon": "icons.svg"
+    "default_icon": "icon.png"
   },
   "background": {
     "service_worker": "background.js"
   },
   "icons": {
-    "128": "icons.svg"
+    "16": "icon.png",
+    "32": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
   }
 }
