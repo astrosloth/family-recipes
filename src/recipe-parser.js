@@ -131,7 +131,7 @@ const parseYaml = (yamlText) =>
       if (val.startsWith('[') && val.endsWith(']')) {
         try {
           val = JSON.parse(val.replace(/'/g, '"'));
-        } catch (e) {
+        } catch {
           val = val
             .slice(1, -1)
             .split(',')
@@ -141,7 +141,8 @@ const parseYaml = (yamlText) =>
         val = Number(val);
       }
 
-      return { ...acc, [key]: val };
+      acc[key] = val;
+      return acc;
     }, {});
 
 /**

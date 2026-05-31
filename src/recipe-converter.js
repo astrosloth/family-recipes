@@ -42,6 +42,9 @@ const STAPLE_DENSITIES = {
   'chocolate chips': { cup: 170, tbsp: 10.6, tsp: 3.5 }
 };
 
+// Pre-sorted density lookup keys by length descending for optimal fuzzy matches (brown sugar matches before sugar)
+const SORTED_STAPLE_KEYS = Object.keys(STAPLE_DENSITIES).sort((a, b) => b.length - a.length);
+
 /**
  * Normalizes common volume units for matching.
  * @param {string} unit
@@ -68,10 +71,8 @@ const findStapleKey = (name) => {
   const exactMatch = Object.keys(STAPLE_DENSITIES).find((k) => k === cleanName);
   if (exactMatch) return exactMatch;
 
-  // Try substring checks (e.g. "sifted flour" matching "flour")
-  // Sort keys by length descending to match specific items like "brown sugar" before "sugar"
-  const sortedKeys = Object.keys(STAPLE_DENSITIES).sort((a, b) => b.length - a.length);
-  return sortedKeys.find((key) => cleanName.includes(key));
+  // Try substring checks (e.g. "sifted flour" matching "flour") using pre-compiled keys
+  return SORTED_STAPLE_KEYS.find((key) => cleanName.includes(key));
 };
 
 /**

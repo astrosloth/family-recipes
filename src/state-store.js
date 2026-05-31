@@ -43,16 +43,30 @@ export const subscribeState = (listener) => {
  * @param {object} newState
  */
 export const updateState = (newState) => {
+  // Capture values before update
+  const oldFavs = state.favorites;
+  const oldShopping = state.shoppingList;
+  const oldGrams = state.gramsMode;
+  const oldGit = state.githubConfig;
+
   state = { ...state, ...newState };
 
-  // Persist selective sub-states
-  localStorage.setItem('family-recipes-favorites', JSON.stringify(state.favorites));
-  localStorage.setItem('family-recipes-shopping-list', JSON.stringify(state.shoppingList));
-  localStorage.setItem('family-recipes-grams-mode', JSON.stringify(state.gramsMode));
-  if (state.githubConfig) {
-    localStorage.setItem('family-recipes-git-config', JSON.stringify(state.githubConfig));
-  } else {
-    localStorage.removeItem('family-recipes-git-config');
+  // Persist only if the values have actually changed referentially
+  if (state.favorites !== oldFavs) {
+    localStorage.setItem('family-recipes-favorites', JSON.stringify(state.favorites));
+  }
+  if (state.shoppingList !== oldShopping) {
+    localStorage.setItem('family-recipes-shopping-list', JSON.stringify(state.shoppingList));
+  }
+  if (state.gramsMode !== oldGrams) {
+    localStorage.setItem('family-recipes-grams-mode', JSON.stringify(state.gramsMode));
+  }
+  if (state.githubConfig !== oldGit) {
+    if (state.githubConfig) {
+      localStorage.setItem('family-recipes-git-config', JSON.stringify(state.githubConfig));
+    } else {
+      localStorage.removeItem('family-recipes-git-config');
+    }
   }
 
   // Notify all active rendering subscribers
