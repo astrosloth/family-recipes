@@ -150,6 +150,16 @@ const handleScrapeResponse = (response) => {
   document.getElementById('clip-title').value = scrapedRecipe.title;
   document.getElementById('clip-desc').value = scrapedRecipe.description;
 
+  // Premium Fallback scrape notice toast
+  if (scrapedRecipe.isFallbackScrape) {
+    showStatus(
+      'No JSON-LD metadata found. Compiled recipe using fallback layout parsing.',
+      'success'
+    );
+  } else {
+    showStatus('Recipe metadata scanned successfully!', 'success');
+  }
+
   showPanel('panel-clipper');
 };
 
