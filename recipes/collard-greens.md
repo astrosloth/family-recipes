@@ -7,7 +7,7 @@ servings: 4
 difficulty: "Easy"
 image: "images/collard-greens-data-1780263044311.jpeg"
 categories: ["Main Course"]
-tags: []
+tags: ["Veg","Green"]
 ---
 
 ## Ingredients
