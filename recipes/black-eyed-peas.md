@@ -5,7 +5,7 @@ prepTime: "15 mins"
 cookTime: "25 min"
 servings: 4
 difficulty: "Easy"
-image: "images/black-eyed-peas-data-1780262657274.jpeg"
+image: "images/black-eyed-peas-data-1780262687495.jpeg"
 categories: ["Main Course"]
 tags: []
 ---
