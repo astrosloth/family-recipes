@@ -139,4 +139,11 @@ tags: ['Cookies', 'Chocolate', 'Sweet', 'Kid-Friendly', 'Family Classic']
 
 ## 📜 License
 
-This project is open-source and free to share, fork, and use for your own family cookbooks! Enjoy cooking! 🍳
+This project is open-source and licensed under the **GNU General Public License v3.0 (GPL-3.0-or-later)**.
+
+Under this strong copyleft license:
+
+- **Freedom to Use**: You are free to run, share, fork, and customize this cookbook for your own family's delicious meals! 🍳
+- **Share-Alike Safeguard**: Any modifications, forks, or derivative works must also be open-source and disclosed under the exact same GPLv3 terms, ensuring this heirloom remains free for the community forever.
+
+For the full legal terms, see the [LICENSE](file:///c:/Users/fmaur/Code/family-recipes/LICENSE) file in the root directory.
