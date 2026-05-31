@@ -211,6 +211,9 @@ export const renderRecipeCreator = (container) => {
                 <button type="button" class="btn btn-secondary" id="btn-upload-image" title="Upload Photo or Take Camera Snap" style="padding: 12px 14px;">
                   <i class="fa-solid fa-camera"></i>
                 </button>
+                <button type="button" class="btn btn-secondary" id="btn-pull-image" title="Pull & Save Image from URL" style="padding: 12px 14px;">
+                  <i class="fa-solid fa-cloud-arrow-down"></i>
+                </button>
                 <input type="file" id="image-file-input" accept="image/*" class="hidden" />
               </div>
             </div>
@@ -421,6 +424,102 @@ export const renderRecipeCreator = (container) => {
         reader.readAsDataURL(file);
       } catch (err) {
         showToast(`Failed to read file: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Pull Image from external URL handler
+  const pullBtn = document.getElementById('btn-pull-image');
+  if (pullBtn) {
+    pullBtn.addEventListener('click', async () => {
+      const imageUrl = prompt(
+        'Enter the external HTTP/HTTPS image URL to download and save inside your cookbook repository:'
+      );
+      if (!imageUrl) return;
+
+      const trimmedUrl = imageUrl.trim();
+      if (trimmedUrl.length === 0) return;
+
+      if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+        showToast('Please enter a valid HTTP or HTTPS image URL!', 'error');
+        return;
+      }
+
+      if (!isAuthorized) {
+        showToast(
+          'Image pull requires Live GitHub Sync. Please connect your GitHub account!',
+          'warning'
+        );
+        return;
+      }
+
+      showToast('Downloading external image...', 'info');
+
+      try {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(trimmedUrl)}`;
+        const response = await fetch(proxyUrl);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image (HTTP ${response.status})`);
+        }
+
+        const blob = await response.blob();
+        showToast('Processing photo...', 'info');
+
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const dataUrl = reader.result;
+            const base64Data = dataUrl.split(',')[1];
+
+            // Generate filename from URL path
+            let origFileName = 'downloaded-image.jpg';
+            try {
+              const urlObj = new URL(trimmedUrl);
+              const pathPart = urlObj.pathname.split('/').pop();
+              if (pathPart && pathPart.includes('.')) {
+                origFileName = pathPart;
+              }
+            } catch {}
+
+            const fileExt = origFileName.split('.').pop() || 'jpg';
+            const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(
+              fileExt.toLowerCase()
+            )
+              ? fileExt
+              : 'jpg';
+
+            const cleanTitle = (formState.title || 'recipe')
+              .toLowerCase()
+              .trim()
+              .replace(/\s+/g, '-')
+              .replace(/[^a-z0-9-]/g, '');
+            const generatedFileName = `${cleanTitle}-pulled-${Date.now()}.${safeExt}`;
+
+            showToast('Uploading pulled image to your GitHub repository...', 'info');
+
+            await commitImageFile(githubConfig, generatedFileName, base64Data);
+
+            const finalPath = `images/${generatedFileName}`;
+            formState.image = finalPath;
+            const imageInput = document.getElementById('recipe-image');
+            if (imageInput) {
+              imageInput.value = finalPath;
+            }
+
+            showToast('External image successfully pulled, saved, and synced offline!', 'success');
+            renderRecipeCreator(container);
+          } catch (uploadErr) {
+            showToast(`Upload failed: ${uploadErr.message}`, 'error');
+          }
+        };
+
+        reader.readAsDataURL(blob);
+      } catch (err) {
+        showToast(
+          `Failed to pull image: ${err.message}. Check the URL or try a different one.`,
+          'error'
+        );
       }
     });
   }
