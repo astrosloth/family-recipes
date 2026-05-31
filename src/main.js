@@ -179,12 +179,12 @@ const renderApp = () => {
           <div class="nav-link ${state.view === 'settings' ? 'active' : ''}" id="nav-settings">
             <i class="fa-solid ${syncIcon}"></i><span>Sync</span>
           </div>
-          <div class="theme-toggle-nav">
-            <button class="icon-button" id="theme-toggle" title="${themeTitle}">
-              <i class="fa-solid ${themeIcon}"></i>
-            </button>
-          </div>
         </nav>
+        <div class="header-actions">
+          <button class="icon-button" id="theme-toggle" title="${themeTitle}">
+            <i class="fa-solid ${themeIcon}"></i>
+          </button>
+        </div>
       </div>
     </header>
     
