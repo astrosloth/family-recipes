@@ -94,15 +94,17 @@ export const initializeRecipes = async () => {
 
 // --- LIGHT/DARK MODE HOOKS ---
 const initTheme = () => {
-  const savedTheme = localStorage.getItem('family-recipes-theme');
+  const savedTheme = localStorage.getItem('family-recipes-theme') || 'system';
   const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-  const activeTheme = savedTheme || (systemDark ? 'dark' : 'light');
+  const activeTheme = savedTheme === 'system' ? (systemDark ? 'dark' : 'light') : savedTheme;
+
   document.documentElement.setAttribute('data-theme', activeTheme);
 
-  // Listen for system changes if no manual override is pinned
+  // Listen for system changes dynamically if System Auto is active
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    if (!localStorage.getItem('family-recipes-theme')) {
+    const currentMode = localStorage.getItem('family-recipes-theme') || 'system';
+    if (currentMode === 'system') {
       const newTheme = e.matches ? 'dark' : 'light';
       document.documentElement.setAttribute('data-theme', newTheme);
       renderApp();
@@ -137,8 +139,22 @@ const renderApp = () => {
   if (!appContainer) return;
 
   const state = getState();
+  const savedTheme = localStorage.getItem('family-recipes-theme') || 'system';
+
   const themeIcon =
-    document.documentElement.getAttribute('data-theme') === 'dark' ? 'fa-sun' : 'fa-moon';
+    savedTheme === 'system'
+      ? 'fa-circle-half-stroke'
+      : savedTheme === 'dark'
+        ? 'fa-sun'
+        : 'fa-moon';
+
+  const themeTitle =
+    savedTheme === 'system'
+      ? 'System Auto-Theme Active (Click to force Light Mode)'
+      : savedTheme === 'dark'
+        ? 'Dark Mode Pinned (Click to restore System Sync)'
+        : 'Light Mode Pinned (Click to force Dark Mode)';
+
   const syncConnected = state.githubConfig && state.githubConfig.token;
   const syncIcon = syncConnected ? 'fa-cloud-arrow-up' : 'fa-cloud';
 
@@ -164,7 +180,7 @@ const renderApp = () => {
             <i class="fa-solid ${syncIcon}"></i><span>Sync</span>
           </div>
           <div class="theme-toggle-nav">
-            <button class="icon-button" id="theme-toggle" title="Toggle Light/Dark Theme">
+            <button class="icon-button" id="theme-toggle" title="${themeTitle}">
               <i class="fa-solid ${themeIcon}"></i>
             </button>
           </div>

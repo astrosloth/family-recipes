@@ -176,11 +176,20 @@ export const stopCookingTimer = () => {
 };
 
 export const toggleTheme = () => {
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  const savedTheme = localStorage.getItem('family-recipes-theme') || 'system';
+  const nextTheme = savedTheme === 'system' ? 'light' : savedTheme === 'light' ? 'dark' : 'system';
 
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('family-recipes-theme', newTheme);
+  localStorage.setItem('family-recipes-theme', nextTheme);
+
+  // Apply the theme to documentElement attribute
+  if (nextTheme === 'system') {
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', systemDark ? 'dark' : 'light');
+    showToast('Theme set to System Auto-Sync', 'success');
+  } else {
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    showToast(`Theme set to ${nextTheme === 'dark' ? 'Dark Mode' : 'Light Mode'}`, 'success');
+  }
 
   updateState({});
 };
