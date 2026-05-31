@@ -5,7 +5,7 @@
  */
 
 import { getState, showToast } from '../state-store';
-import { commitRecipeFile } from '../github-service';
+import { commitRecipeFile, commitImageFile } from '../github-service';
 import { formatQuantity } from '../recipe-parser';
 
 // Local template helper states to track rows during editing session
@@ -206,7 +206,13 @@ export const renderRecipeCreator = (container) => {
             </div>
             <div class="form-group">
               <label class="form-label">Local Image path (relative in repo)</label>
-              <input type="text" id="recipe-image" class="form-input" placeholder="images/rolls.jpg" value="${formState.image}" required />
+              <div class="image-upload-wrapper" style="display: flex; gap: 8px;">
+                <input type="text" id="recipe-image" class="form-input" placeholder="images/rolls.jpg" value="${formState.image}" required style="flex: 1;" />
+                <button type="button" class="btn btn-secondary" id="btn-upload-image" title="Upload Photo or Take Camera Snap" style="padding: 12px 14px;">
+                  <i class="fa-solid fa-camera"></i>
+                </button>
+                <input type="file" id="image-file-input" accept="image/*" class="hidden" />
+              </div>
             </div>
           </div>
           
@@ -349,6 +355,75 @@ export const renderRecipeCreator = (container) => {
     // Fill the compiled preview pre
     document.getElementById('markdown-raw-code').innerText = compileMarkdown();
   });
+
+  // Image Upload / Camera Snap handler
+  const uploadBtn = document.getElementById('btn-upload-image');
+  const fileInput = document.getElementById('image-file-input');
+
+  if (uploadBtn && fileInput) {
+    uploadBtn.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        showToast('Please select a valid image file!', 'error');
+        return;
+      }
+
+      if (!isAuthorized) {
+        showToast(
+          'Image upload requires Live GitHub Sync. Please connect your GitHub account!',
+          'warning'
+        );
+        return;
+      }
+
+      showToast('Processing photo...', 'info');
+
+      try {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const dataUrl = reader.result;
+            const base64Data = dataUrl.split(',')[1];
+
+            // Generate unique structured filename
+            const cleanTitle = (formState.title || 'recipe')
+              .toLowerCase()
+              .trim()
+              .replace(/\s+/g, '-')
+              .replace(/[^a-z0-9-]/g, '');
+            const fileExt = file.name.split('.').pop() || 'jpg';
+            const generatedFileName = `${cleanTitle}-${Date.now()}.${fileExt}`;
+
+            showToast('Uploading photo to your GitHub repository...', 'info');
+
+            await commitImageFile(githubConfig, generatedFileName, base64Data);
+
+            const finalPath = `images/${generatedFileName}`;
+            formState.image = finalPath;
+            const imageInput = document.getElementById('recipe-image');
+            if (imageInput) {
+              imageInput.value = finalPath;
+            }
+
+            showToast('Photo uploaded and committed to GitHub successfully!', 'success');
+            renderRecipeCreator(container);
+          } catch (uploadErr) {
+            showToast(`Upload failed: ${uploadErr.message}`, 'error');
+          }
+        };
+
+        reader.readAsDataURL(file);
+      } catch (err) {
+        showToast(`Failed to read file: ${err.message}`, 'error');
+      }
+    });
+  }
 
   // Dynamic Row Appenders: Add Ingredient Row
   document.getElementById('btn-add-ingredient').addEventListener('click', () => {

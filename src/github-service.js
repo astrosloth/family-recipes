@@ -170,6 +170,55 @@ export const commitRecipeFile = async (config, fileName, mdContent, sha = null) 
 };
 
 /**
+ * Commits a binary image file (already encoded in Base64) to the repository.
+ * @param {object} config - { owner, repo, branch, token }
+ * @param {string} fileName - e.g. "rolls-12345.jpg"
+ * @param {string} base64Data - Raw Base64 string of the image (without data URL prefix)
+ * @returns {Promise<object>} - Committed file status
+ */
+export const commitImageFile = async (config, fileName, base64Data) => {
+  const { owner, repo, branch = 'main', token } = config;
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/recipes/images/${fileName}`;
+
+  try {
+    let sha = null;
+    try {
+      const getRes = await fetch(`${url}?ref=${branch}`, { headers: getHeaders(token) });
+      if (getRes.status === 200) {
+        const fileData = await getRes.json();
+        sha = fileData.sha;
+      }
+    } catch {}
+
+    const body = {
+      message: `Upload Recipe Image: ${fileName}`,
+      content: base64Data,
+      branch,
+      ...(sha ? { sha } : {})
+    };
+
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        ...getHeaders(token),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (res.status !== 200 && res.status !== 201) {
+      const errorDetail = await res.json().catch(() => ({}));
+      throw new Error(errorDetail.message || `Image upload failed with status ${res.status}`);
+    }
+
+    return await res.json();
+  } catch (err) {
+    console.error('[GitHub Service] Image upload failed:', err);
+    throw err;
+  }
+};
+
+/**
  * Deletes a recipe file from the repository.
  * @param {object} config - { owner, repo, branch, token }
  * @param {string} fileName - e.g. "lasagna.md"
