@@ -1,0 +1,78 @@
+#!/bin/sh
+
+# --- HUSKY PRE-COMMIT SAFEGUARDS ---
+echo "=================================================="
+echo "🛡️  Running Git Commit Safeguards..."
+echo "=================================================="
+
+# 1. CHECK FOR STAGED FILES
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+if [ -z "$STAGED_FILES" ]; then
+  echo "✅ No modified files to check. Proceeding..."
+  echo "=================================================="
+  exit 0
+fi
+
+# 2. SCAN FOR GITHUB PERSONAL ACCESS TOKENS (PATs)
+echo "🔒 Scanning staged changes for credentials/tokens..."
+LEAKS_FOUND=0
+
+for FILE in $STAGED_FILES; do
+  # Scan only the newly added lines (+...) in the staged diff for this file.
+  # Classic token: ghp_ followed by exactly 36 alphanumeric characters.
+  # Fine-grained token: github_pat_ followed by 20+ alphanumeric/underscore characters.
+  # This avoids false positives on examples (e.g., github_pat_...) and hook source code.
+  LEAK_CHECK=$(git diff --cached --unified=0 "$FILE" | grep -E "^\+.*(ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{20,})" || true)
+  
+  if [ ! -z "$LEAK_CHECK" ]; then
+    echo "❌ CRITICAL SECURITY LEAK DETECTED in file: $FILE"
+    echo "Staged Leak Details:"
+    echo "$LEAK_CHECK" | sed 's/^\+//' | cut -c 1-50
+    LEAKS_FOUND=1
+  fi
+done
+
+if [ $LEAKS_FOUND -ne 0 ]; then
+  echo "--------------------------------------------------"
+  echo "⚠️  COMMIT ABORTED to prevent accidental credential leaks!"
+  echo "Please remove the credentials or clear the files and try again."
+  echo "=================================================="
+  exit 1
+fi
+echo "✅ Credentials Check Passed (No active tokens detected)."
+
+# 3. RUN LINTING AND FORMATTING ON STAGED FILES
+echo "🧹 Running automatic linting & formatting..."
+npx lint-staged
+LINT_STATUS=$?
+
+if [ $LINT_STATUS -ne 0 ]; then
+  echo "❌ LINTING/FORMATTING ERROR: Code does not meet quality standards!"
+  echo "⚠️  Commit aborted."
+  echo "=================================================="
+  exit 1
+fi
+echo "✅ Linting & Formatting Passed."
+
+# 4. VERIFY VITE BUILD COMPILABILITY
+echo "📦 Running Vite production build check..."
+BUILD_OUTPUT=$(npm run build 2>&1)
+BUILD_STATUS=$?
+
+if [ $BUILD_STATUS -ne 0 ]; then
+  echo "❌ CRITICAL COMPILATION ERROR:"
+  echo "--------------------------------------------------"
+  echo "The production build check failed!"
+  echo "Error Details:"
+  echo "$BUILD_OUTPUT"
+  echo "--------------------------------------------------"
+  echo "⚠️  COMMIT ABORTED to protect branch compilability."
+  echo "=================================================="
+  exit 1
+fi
+echo "✅ Build Validation Passed (Assets compiled successfully)."
+
+echo "=================================================="
+echo "🛡️  All safeguards passed! Committing changes..."
+echo "=================================================="
+exit 0

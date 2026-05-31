@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Family Recipe Clipper",
+  "version": "1.0.0",
+  "description": "Clip ingredients, times, and cooking instructions from any site directly into your family recipe book in one tap!",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["https://api.github.com/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icons.svg"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "128": "icons.svg"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "Our Family Recipes",
+  "short_name": "Recipes",
+  "description": "A beautiful, premium, markdown-powered family recipe book and offline kitchen companion.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#D97706",
+  "orientation": "any",
+  "categories": ["food", "lifestyle"],
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
