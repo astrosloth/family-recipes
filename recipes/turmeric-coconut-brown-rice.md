@@ -12,11 +12,11 @@ tags: []
 
 ## Ingredients
 - 2 cups brown jasmine rice
-- 1-2 scallions
+-  scallions
 - 1 tsp ground turmeric
-- ½+ tsp ground black pepper
-- 1-2 tbsp coconut oil
-- 1 (13.5 oz) can coconut milk
+-  tsp ground black pepper
+-  tbsp coconut oil
+-  oz coconut milk (canned)
 - 1 tsp salt
 
 ## Instructions
