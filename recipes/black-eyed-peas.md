@@ -12,22 +12,22 @@ tags: []
 
 ## Ingredients
 - 1 onion, diced
-- 2-3 celery stalks, sliced
-- 1-2 peppers, diced
-- 1-2 carrots, finely chopped
-- 4-8 garlic cloves, minced
+-  celery stalks, sliced
+-  peppers, diced
+-  carrots, finely chopped
+-  garlic cloves, minced
 - 1 tsp garlic powder
-- ½ tsp cayenne or chipotle powder
-- 0-2 tsp paprika
+-  tsp cayenne or chipotle powder
+-  tsp paprika
 - 1 tsp dried cilantro/oregano
-- 1½ tsp salt
+-  tsp salt
 - 1 tsp black pepper, ground
 - 1 lb dry black-eyed peas, rinsed
-- 3-4 bay leaves
+-  bay leaves
 - 4 cups broth
 - 1 tbsp apple cider vinegar
 - 1 tsp liquid smoke
-- 1-2 tbsp liquid aminos
+-  tbsp liquid aminos
 
 ## Instructions
 1. Saute onion, celery, pepper/carrot.
