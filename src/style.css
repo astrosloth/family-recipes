@@ -184,7 +184,7 @@ a:hover {
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border-bottom: 1px solid hsl(var(--border-color-hsl));
-  padding: 16px 0;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 0 16px 0;
   transition:
     background var(--transition-normal),
     border-color var(--transition-normal);
@@ -1729,7 +1729,7 @@ input:checked + .slider:before {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 64px;
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -1739,7 +1739,7 @@ input:checked + .slider:before {
     justify-content: space-around;
     align-items: center;
     margin: 0;
-    padding: 0 16px;
+    padding: 0 16px env(safe-area-inset-bottom, 0px) 16px;
     gap: 0;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
   }
@@ -1772,11 +1772,15 @@ input:checked + .slider:before {
   }
 
   .app-main {
-    padding-bottom: 80px; /* Leave space so bottom-most content is scrollable and readable */
+    padding-bottom: calc(
+      80px + env(safe-area-inset-bottom, 0px)
+    ); /* Leave space so bottom-most content is scrollable and readable */
   }
 
   .toast-container {
-    bottom: 80px; /* Lift toast notifications above the tab bar */
+    bottom: calc(
+      80px + env(safe-area-inset-bottom, 0px)
+    ); /* Lift toast notifications above the tab bar */
   }
 }
 
