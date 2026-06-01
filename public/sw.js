@@ -1,4 +1,4 @@
-const CACHE_NAME = 'family-recipes-cache-v1';
+const CACHE_NAME = 'family-recipes-cache-v2';
 const STATIC_ASSETS = ['./', './index.html', './manifest.json', './favicon.svg'];
 
 // Install Event - cache core static shell
