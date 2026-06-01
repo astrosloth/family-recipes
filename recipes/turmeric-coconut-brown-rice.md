@@ -1,25 +1,27 @@
 ---
-title: "Turmeric Coconut Brown Rice"
-description: ""
-prepTime: "15 mins"
-cookTime: "30 mins"
+title: 'Turmeric Coconut Brown Rice'
+description: ''
+prepTime: '15 mins'
+cookTime: '30 mins'
 servings: 4
-difficulty: "Easy"
-image: "images/placeholder.jpg"
-categories: ["Main Course"]
+difficulty: 'Easy'
+image: 'images/placeholder.jpg'
+categories: ['Main Course']
 tags: []
 ---
 
 ## Ingredients
+
 - 2 cups brown jasmine rice
--  scallions
+- 1-2 scallions
 - 1 tsp ground turmeric
--  tsp ground black pepper
--  tbsp coconut oil
--  oz coconut milk (canned)
+- ½+ tsp ground black pepper
+- 1-2 tbsp coconut oil
+- 1 (13.5 oz) can coconut milk
 - 1 tsp salt
 
 ## Instructions
+
 1. Soak/rinse rice and drain.
 2. Slice scallions thinly and separate white from green, reserving greens for a garnish.
 3. Sauté scallion whites, turmeric, and black pepper in coconut oil for a couple minutes, until fragrant.
@@ -30,6 +32,7 @@ tags: []
 8. Fluff the rice and serve garnished with scallion greens (or keep warm).
 
 ## Notes
+
 - Add more scallions, as well as garlic and ginger in the sauté
 - Use broth instead of water
 - Add cilantro to garnish
