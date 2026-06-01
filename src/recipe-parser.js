@@ -6,7 +6,7 @@
 // Regular expressions for parsing
 const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
 const INGREDIENT_LINE_REGEX =
-  /^\s*-\s+(\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?|-)?\s*(cup|cups|tbsp|tbsps|tsp|tsps|g|grams|kg|oz|ounces|lb|lbs|pounds|clove|cloves|can|cans|pinch|pinches|ml|l|slice|slices)?\s+(.+)$/i;
+  /^\s*-\s+((?:\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?)(?:\s*-\s*|\s+(?:to|or)\s+)(?:\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?)|(?:\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?)|-)?\s*(cup|cups|tbsp|tbsps|tsp|tsps|g|grams|kg|oz|ounces|lb|lbs|pounds|clove|cloves|can|cans|pinch|pinches|ml|l|slice|slices)?\s+(.+)$/i;
 const DURATION_REGEX =
   /\b(\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?)\s*(mins?|minutes?|hours?|hrs?)\b/gi;
 
@@ -18,6 +18,11 @@ const DURATION_REGEX =
 export const parseFraction = (fractionStr) => {
   if (!fractionStr) return null;
   const trimmed = fractionStr.trim();
+
+  // If the string contains range indicators or non-numeric characters, reject it as a clean fraction
+  if (/[^0-9/.\s]/.test(trimmed)) {
+    return null;
+  }
 
   // Mixed number (e.g., "1 1/2")
   if (trimmed.includes(' ')) {
@@ -161,6 +166,7 @@ const parseIngredientsSection = (sectionText) =>
         return {
           originalText: line.replace(/^\s*-\s+/, ''),
           quantity: null,
+          rawQuantity: '',
           unit: '',
           name: line.replace(/^\s*-\s+/, ''),
           scalable: false
@@ -173,6 +179,7 @@ const parseIngredientsSection = (sectionText) =>
       return {
         originalText: line.replace(/^\s*-\s+/, ''),
         quantity,
+        rawQuantity: rawQty || '',
         unit: rawUnit ? rawUnit.toLowerCase().trim() : '',
         name: name.trim(),
         scalable: quantity !== null

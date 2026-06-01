@@ -56,7 +56,11 @@ export const renderShoppingList = (container) => {
             <div style="display: flex; flex-direction: column; gap: 4px;">
               ${shoppingList
                 .map((item) => {
-                  const qtyStr = item.quantity ? `${formatQuantity(item.quantity)} ` : '';
+                  const qtyStr = item.quantity
+                    ? `${formatQuantity(item.quantity)} `
+                    : item.rawQuantity
+                      ? `${item.rawQuantity} `
+                      : '';
                   const unitStr = item.unit ? `${item.unit} ` : '';
                   const sourceStr = item.recipeTitle
                     ? `<span style="font-size: 11px; color: hsl(var(--text-tertiary-hsl)); margin-left: 8px; font-style: italic;">(from ${item.recipeTitle})</span>`

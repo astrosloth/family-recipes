@@ -75,7 +75,7 @@ export const renderCookingMode = (appShellContainer) => {
                   displayText = converted.name;
                 }
 
-                const qtyStr = displayQty ? formatQuantity(displayQty) : '';
+                const qtyStr = displayQty ? formatQuantity(displayQty) : ing.rawQuantity || '';
                 const isChecked = cookingPrepped.includes(`${recipe.id}-ing-${index}`);
 
                 return `
@@ -84,7 +84,7 @@ export const renderCookingMode = (appShellContainer) => {
                     <i class="fa-solid fa-check"></i>
                   </div>
                   <span class="ingredient-text">
-                    ${displayQty ? `<span class="ingredient-quantity-badge" style="color: hsl(var(--accent-primary-hsl));">${qtyStr}</span>` : ''}
+                    ${displayQty || ing.rawQuantity ? `<span class="ingredient-quantity-badge" style="color: hsl(var(--accent-primary-hsl));">${qtyStr}</span>` : ''}
                     ${displayUnit ? `<span class="ingredient-quantity-badge" style="color: rgba(255,255,255,0.4); font-weight: 500;">${displayUnit}</span>` : ''}
                     ${displayText}
                   </span>

@@ -146,7 +146,7 @@ export const renderRecipeCreator = (container) => {
         tags: editTarget.tags,
         // Match structure of inputs
         ingredients: editTarget.ingredients.map((i) => ({
-          quantity: i.quantity || '',
+          quantity: i.rawQuantity !== undefined ? i.rawQuantity : i.quantity || '',
           unit: i.unit || '',
           name: i.name || ''
         })),

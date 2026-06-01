@@ -50,7 +50,11 @@ const injectRecipeSchemaJson = (recipe) => {
     recipeCategory: recipe.categories[0] || 'Cooking',
     keywords: recipe.tags.join(', '),
     recipeIngredient: recipe.ingredients.map((i) => {
-      const qtyStr = i.quantity ? `${formatQuantity(i.quantity)} ` : '';
+      const qtyStr = i.quantity
+        ? `${formatQuantity(i.quantity)} `
+        : i.rawQuantity
+          ? `${i.rawQuantity} `
+          : '';
       const unitStr = i.unit ? `${i.unit} ` : '';
       return `${qtyStr}${unitStr}${i.name}`.trim();
     }),
@@ -215,7 +219,7 @@ export const renderRecipeView = (container) => {
                   displayText = converted.name;
                 }
 
-                const qtyStr = displayQty ? formatQuantity(displayQty) : '';
+                const qtyStr = displayQty ? formatQuantity(displayQty) : ing.rawQuantity || '';
                 const isChecked = cookingPrepped.includes(`${recipe.id}-ing-${index}`);
 
                 return `
@@ -224,7 +228,7 @@ export const renderRecipeView = (container) => {
                     <i class="fa-solid fa-check"></i>
                   </div>
                   <span class="ingredient-text">
-                    ${displayQty ? `<span class="ingredient-quantity-badge">${qtyStr}</span>` : ''}
+                    ${displayQty || ing.rawQuantity ? `<span class="ingredient-quantity-badge">${qtyStr}</span>` : ''}
                     ${displayUnit ? `<span class="ingredient-quantity-badge" style="color: hsl(var(--text-secondary-hsl)); font-weight: 500;">${displayUnit}</span>` : ''}
                     ${displayText}
                   </span>
@@ -374,6 +378,7 @@ export const renderRecipeView = (container) => {
         id: `${recipe.id}-shop-${Math.random().toString(36).substr(2, 5)}`,
         name: displayName,
         quantity: displayQty,
+        rawQuantity: ing.rawQuantity || '',
         unit: displayUnit,
         checked: false,
         recipeTitle: recipe.title
