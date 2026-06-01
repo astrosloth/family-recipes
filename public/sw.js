@@ -53,8 +53,16 @@ self.addEventListener('fetch', (event) => {
     requestUrl.hostname === 'raw.githubusercontent.com' ||
     requestUrl.hostname === 'api.github.com';
 
-  if (isRecipeRequest) {
-    // Network-first, fallback to cache for recipes (dynamic live updates + offline storage)
+  // Always use Network-First for the HTML shell navigation & recipes to prevent stale bundle mismatch crashes!
+  const isNetworkFirstRequest =
+    isRecipeRequest ||
+    event.request.mode === 'navigate' ||
+    requestUrl.pathname === '/' ||
+    requestUrl.pathname.endsWith('/index.html') ||
+    requestUrl.pathname.includes('/index.html');
+
+  if (isNetworkFirstRequest) {
+    // Network-first, fallback to cache (dynamic live updates + offline storage)
     event.respondWith(
       fetch(event.request)
         .then((response) => {
@@ -69,7 +77,7 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          console.log('[Service Worker] Offline: Loading recipe from cache', event.request.url);
+          console.log('[Service Worker] Offline: Loading resource from cache', event.request.url);
           return caches.match(event.request);
         })
     );
