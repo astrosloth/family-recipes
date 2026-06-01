@@ -217,6 +217,18 @@ const parseInstructionsSection = (sectionText) =>
     });
 
 /**
+ * Parses notes list from markdown body (accepts lists starting with '-' or '*').
+ * @param {string} sectionText
+ * @returns {array}
+ */
+const parseNotesSection = (sectionText) =>
+  sectionText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith('## Notes'))
+    .map((line) => line.replace(/^\s*[-*]\s+/, ''));
+
+/**
  * The master functional parsing pipeline.
  * Takes a markdown raw string and constructs a highly structured, immutable recipe record.
  * Uses Try-Catch isolation to prevent malformed files from breaking execution.
@@ -239,9 +251,10 @@ export const parseRecipeMarkdown = (mdContent, fileName = '', githubConfig = nul
     // Resolve relative path mapping
     const resolvedImage = metadata.image ? resolveImagePath(metadata.image, githubConfig) : '';
 
-    // Split body into segments
+    // Split body into segments dynamically considering ## Ingredients, ## Instructions, and ## Notes
     const ingredientsStartIndex = bodyContent.indexOf('## Ingredients');
     const instructionsStartIndex = bodyContent.indexOf('## Instructions');
+    const notesStartIndex = bodyContent.indexOf('## Notes');
 
     if (ingredientsStartIndex === -1) {
       throw new Error("Missing '## Ingredients' markdown header section");
@@ -249,16 +262,29 @@ export const parseRecipeMarkdown = (mdContent, fileName = '', githubConfig = nul
 
     let ingredientsBlock = '';
     let instructionsBlock = '';
+    let notesBlock = '';
 
     if (instructionsStartIndex !== -1) {
       ingredientsBlock = bodyContent.slice(ingredientsStartIndex, instructionsStartIndex);
-      instructionsBlock = bodyContent.slice(instructionsStartIndex);
+
+      if (notesStartIndex !== -1) {
+        instructionsBlock = bodyContent.slice(instructionsStartIndex, notesStartIndex);
+        notesBlock = bodyContent.slice(notesStartIndex);
+      } else {
+        instructionsBlock = bodyContent.slice(instructionsStartIndex);
+      }
     } else {
-      ingredientsBlock = bodyContent.slice(ingredientsStartIndex);
+      if (notesStartIndex !== -1) {
+        ingredientsBlock = bodyContent.slice(ingredientsStartIndex, notesStartIndex);
+        notesBlock = bodyContent.slice(notesStartIndex);
+      } else {
+        ingredientsBlock = bodyContent.slice(ingredientsStartIndex);
+      }
     }
 
     const ingredients = parseIngredientsSection(ingredientsBlock);
     const instructions = parseInstructionsSection(instructionsBlock);
+    const notes = notesBlock ? parseNotesSection(notesBlock) : [];
 
     return {
       success: true,
@@ -277,6 +303,7 @@ export const parseRecipeMarkdown = (mdContent, fileName = '', githubConfig = nul
       tags: Array.isArray(metadata.tags) ? metadata.tags : metadata.tags ? [metadata.tags] : [],
       ingredients,
       instructions,
+      notes,
       rawContent: mdContent
     };
   } catch (error) {

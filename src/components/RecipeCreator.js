@@ -66,7 +66,15 @@ const compileMarkdown = () => {
     ''
   ].join('\n');
 
-  return `${yaml}\n${ingredientsText}\n${instructionsText}`;
+  const activeNotes = formState.notes
+    ? formState.notes.filter((n) => n.text && n.text.trim().length > 0)
+    : [];
+  const notesText =
+    activeNotes.length > 0
+      ? ['## Notes', ...activeNotes.map((n) => `- ${n.text.trim()}`), ''].join('\n')
+      : '';
+
+  return `${yaml}\n${ingredientsText}\n${instructionsText}${notesText ? `\n${notesText}` : ''}`;
 };
 
 /**
@@ -122,6 +130,7 @@ export const renderRecipeCreator = (container) => {
           step: s.step,
           text: s.text
         })),
+        notes: editTarget.notes ? editTarget.notes.map((n) => ({ text: n })) : [],
         activeTab: 'edit',
         originalSha: null // Fetched live upon commit
       };
@@ -141,6 +150,7 @@ export const renderRecipeCreator = (container) => {
       tags: [],
       ingredients: [{ quantity: 1, unit: 'cup', name: '' }],
       instructions: [{ step: 1, text: '' }],
+      notes: [],
       activeTab: 'edit',
       originalSha: null
     };
@@ -285,6 +295,29 @@ export const renderRecipeCreator = (container) => {
                 .join('')}
             </div>
           </div>
+          
+          <!-- Notes Dynamic List builder -->
+          <div class="dynamic-list-builder">
+            <div class="list-builder-header">
+              <h4 class="list-builder-title">Recipe Notes & Cooking Tips</h4>
+              <button type="button" class="btn btn-secondary" id="btn-add-note" style="padding: 6px 12px; font-size: 12px;">
+                <i class="fa-solid fa-plus"></i> Add Note
+              </button>
+            </div>
+            
+            <div id="notes-rows-container">
+              ${formState.notes
+                .map(
+                  (note, idx) => `
+                <div class="builder-item-row" data-note-row="${idx}">
+                  <input type="text" class="form-input note-text" style="flex: 1;" placeholder="e.g. Sub margarine for butter if vegan-friendly..." value="${note.text}" required />
+                  <button type="button" class="remove-row-btn" data-rem-note="${idx}"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+          </div>
         </form>
         
         <!-- Action Footer -->
@@ -338,6 +371,16 @@ export const renderRecipeCreator = (container) => {
         formState.instructions[idx] = {
           step: idx + 1,
           text: row.querySelector('.step-text-area').value
+        };
+      }
+    });
+
+    // Sync notes rows
+    document.querySelectorAll('[data-note-row]').forEach((row) => {
+      const idx = Number(row.getAttribute('data-note-row'));
+      if (formState.notes[idx]) {
+        formState.notes[idx] = {
+          text: row.querySelector('.note-text').value
         };
       }
     });
@@ -603,6 +646,23 @@ export const renderRecipeCreator = (container) => {
         step: index + 1,
         text: step.text
       }));
+      renderRecipeCreator(container);
+    });
+  });
+
+  // Dynamic Row Appenders: Add Note Row
+  document.getElementById('btn-add-note').addEventListener('click', () => {
+    syncFormFields();
+    formState.notes = [...formState.notes, { text: '' }];
+    renderRecipeCreator(container);
+  });
+
+  // Dynamic Row Removers: Remove Note Row
+  document.querySelectorAll('[data-rem-note]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      syncFormFields();
+      const idx = Number(e.currentTarget.getAttribute('data-rem-note'));
+      formState.notes = formState.notes.filter((_, i) => i !== idx);
       renderRecipeCreator(container);
     });
   });

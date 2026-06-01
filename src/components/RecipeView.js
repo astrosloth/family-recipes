@@ -274,6 +274,22 @@ export const renderRecipeView = (container) => {
               )
               .join('')}
           </ol>
+          
+          <!-- Recipe Notes (Gourmet Tip Box) -->
+          ${
+            recipe.notes && recipe.notes.length > 0
+              ? `
+            <div class="recipe-notes-box" style="margin-top: 32px; padding: 24px; background: hsl(var(--bg-secondary-hsl)); border-radius: var(--border-radius-md); border-left: 4px solid hsl(var(--accent-primary-hsl));">
+              <h3 style="font-family: var(--font-serif); font-size: 18px; margin-bottom: 12px; color: hsl(var(--text-primary-hsl)); display: flex; align-items: center; gap: 8px; margin-top: 0;">
+                <i class="fa-solid fa-lightbulb" style="color: hsl(var(--accent-primary-hsl)); font-weight: 600;"></i> Notes & Cooking Tips
+              </h3>
+              <ul style="margin: 0; padding-left: 20px; color: hsl(var(--text-secondary-hsl)); font-size: 14.5px; display: flex; flex-direction: column; gap: 8px; line-height: 1.5;">
+                ${recipe.notes.map((note) => `<li>${marked.parseInline(note)}</li>`).join('')}
+              </ul>
+            </div>
+          `
+              : ''
+          }
         </div>
       </div>
     </div>
