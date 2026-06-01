@@ -58,6 +58,7 @@ self.addEventListener('fetch', (event) => {
     isRecipeRequest ||
     event.request.mode === 'navigate' ||
     requestUrl.pathname === '/' ||
+    requestUrl.pathname.endsWith('/') ||
     requestUrl.pathname.endsWith('/index.html') ||
     requestUrl.pathname.includes('/index.html');
 
