@@ -1,5 +1,21 @@
 /* global process */
 import { defineConfig } from 'vite';
+import fs from 'fs';
+import path from 'path';
+
+// Custom plugin to copy recipes directory (including config.json and images) to dist/recipes
+const copyRecipesPlugin = () => ({
+  name: 'copy-recipes',
+  closeBundle() {
+    const srcDir = path.resolve(process.cwd(), 'recipes');
+    const destDir = path.resolve(process.cwd(), 'dist/recipes');
+
+    if (fs.existsSync(srcDir)) {
+      fs.cpSync(srcDir, destDir, { recursive: true, force: true });
+      console.log('[copy-recipes] Successfully copied recipes/ to dist/recipes/');
+    }
+  }
+});
 
 export default defineConfig(() => {
   // Configurable base path:
@@ -10,6 +26,7 @@ export default defineConfig(() => {
 
   return {
     base: basePath,
+    plugins: [copyRecipesPlugin()],
     server: {
       port: 3000,
       open: true
