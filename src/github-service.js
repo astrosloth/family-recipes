@@ -42,7 +42,7 @@ export const autoDetectRepo = () => {
     const repo = pathParts[0] || '';
 
     if (owner && repo) {
-      console.log(`[GitHub Service] Auto-detected repo: ${owner}/${repo}`);
+      console.info(`[GitHub Service] Auto-detected repo: ${owner}/${repo}`);
       return { owner, repo };
     }
   }
@@ -132,8 +132,8 @@ export const commitRecipeFile = async (config, fileName, mdContent, sha = null) 
           const fileData = await getRes.json();
           activeSha = fileData.sha;
         }
-      } catch (e) {
-        console.log('[GitHub Service] File is new, proceeding without SHA');
+      } catch {
+        console.info('[GitHub Service] File is new, proceeding without SHA');
       }
     }
 

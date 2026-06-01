@@ -68,7 +68,7 @@ const loadConfiguration = async (activeConfig) => {
       }
     }
   } catch (err) {
-    console.log('[Theme Engine] Configuration load bypassed:', err.message);
+    console.info('[Theme Engine] Configuration load bypassed:', err.message);
   }
 };
 
@@ -170,6 +170,63 @@ const parseRoute = () => {
   }
 };
 
+// --- COMPONENT RUNTIME ERROR BOUNDARY UI ---
+const renderErrorBoundary = (container, error) => {
+  if (!container) return;
+  const errorDetails = error ? error.stack || error.toString() : 'Unknown runtime error';
+
+  container.innerHTML = `
+    <div class="error-boundary-card container" style="margin: 2rem auto; padding: 2.5rem; max-width: 650px; border-radius: 16px; background: var(--bg-card); border: 1px solid rgba(239, 68, 68, 0.25); box-shadow: var(--shadow-lg); color: var(--text-main); text-align: left; animation: fadeIn 0.4s ease-out;">
+      <div style="display: flex; align-items: center; gap: 1.25rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.25rem;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.75rem; color: #ef4444;"></i>
+        <div>
+          <h2 style="margin: 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em;">Gourmet Crash Recovery</h2>
+          <p style="margin: 0.25rem 0 0 0; font-size: 0.95rem; color: var(--text-muted);">A rendering exception was safely intercepted.</p>
+        </div>
+      </div>
+      
+      <p style="margin-bottom: 1.75rem; line-height: 1.6; font-size: 1rem; color: var(--text-main);">
+        The AI safeguards isolated a visual rendering crash in this view to keep the rest of the application stable. You can easily head back to your cookbook home or inspect the Technical details below to debug the issue.
+      </p>
+
+      <div style="margin-bottom: 2rem;">
+        <button class="button button-primary" id="error-boundary-home-btn" style="background: var(--accent-color, #D97706); border: none; padding: 0.85rem 1.75rem; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: var(--shadow-sm); transition: transform 0.2s, filter 0.2s;">
+          <i class="fa-solid fa-house"></i> Back to Cookbook
+        </button>
+      </div>
+
+      <details style="background: rgba(0, 0, 0, 0.03); border-radius: 8px; padding: 1.25rem; border: 1px solid var(--border-color); transition: background-color 0.2s;">
+        <summary style="cursor: pointer; font-weight: 600; color: var(--text-muted); outline: none; list-style: none; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-bug" style="color: #ef4444;"></i> <span>Show Technical Trace</span>
+        </summary>
+        <pre style="margin-top: 1.25rem; padding: 1rem; background: rgba(0, 0, 0, 0.06); border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 0.85rem; color: #ef4444; max-height: 250px; white-space: pre-wrap; text-align: left; border-left: 3px solid #ef4444;">${errorDetails}</pre>
+      </details>
+    </div>
+  `;
+
+  // Attach recovery action
+  const homeBtn = document.getElementById('error-boundary-home-btn');
+  if (homeBtn) {
+    homeBtn.addEventListener('click', () => {
+      window.location.hash = '#home';
+      import('./state-store').then((m) => {
+        m.updateState({ view: 'home', activeRecipeId: null });
+      });
+    });
+
+    // Simple hover styles injected via event listeners
+    homeBtn.style.transition = 'transform 0.2s ease, filter 0.2s ease';
+    homeBtn.addEventListener('mouseenter', () => {
+      homeBtn.style.filter = 'brightness(1.1)';
+      homeBtn.style.transform = 'translateY(-1px)';
+    });
+    homeBtn.addEventListener('mouseleave', () => {
+      homeBtn.style.filter = 'none';
+      homeBtn.style.transform = 'none';
+    });
+  }
+};
+
 // --- DECLARATIVE LAYOUT ASSEMBLER ---
 const renderApp = () => {
   const appContainer = document.getElementById('app');
@@ -253,19 +310,28 @@ const renderApp = () => {
   // Render Component Views depending on Routing State
   const mainContent = document.getElementById('app-main-content');
 
-  if (state.view === 'home') {
-    renderDashboard(mainContent);
-  } else if (state.view === 'recipe') {
-    renderRecipeView(mainContent);
-  } else if (state.view === 'cooking-mode') {
-    // Cooking Mode is rendered as a standalone overlay to isolate focus
-    renderCookingMode(appContainer);
-  } else if (state.view === 'create') {
-    renderRecipeCreator(mainContent);
-  } else if (state.view === 'shopping-list') {
-    renderShoppingList(mainContent);
-  } else if (state.view === 'settings') {
-    renderSyncSettings(mainContent);
+  try {
+    if (state.view === 'home') {
+      renderDashboard(mainContent);
+    } else if (state.view === 'recipe') {
+      renderRecipeView(mainContent);
+    } else if (state.view === 'cooking-mode') {
+      // Cooking Mode is rendered as a standalone overlay to isolate focus
+      renderCookingMode(appContainer);
+    } else if (state.view === 'create') {
+      renderRecipeCreator(mainContent);
+    } else if (state.view === 'shopping-list') {
+      renderShoppingList(mainContent);
+    } else if (state.view === 'settings') {
+      renderSyncSettings(mainContent);
+    }
+  } catch (err) {
+    console.error('[App Shell] Visual Component rendering crashed:', err);
+    if (state.view === 'cooking-mode') {
+      renderErrorBoundary(appContainer, err);
+    } else {
+      renderErrorBoundary(mainContent, err);
+    }
   }
 };
 
@@ -278,10 +344,34 @@ window.addEventListener('load', () => {
   if ('serviceWorker' in navigator && !window.location.hostname.includes('localhost')) {
     navigator.serviceWorker
       .register('./sw.js')
-      .then((reg) => console.log('[PWA] Service Worker registered exactly', reg.scope))
+      .then((reg) => console.info('[PWA] Service Worker registered exactly', reg.scope))
       .catch((err) => console.error('[PWA] Service Worker registration failed', err));
   }
 
   parseRoute();
   initializeRecipes();
+});
+
+// --- GLOBAL RUNTIME EXCEPTION LISTENERS ---
+// Prevent silent UI freezes and notify the user via beautiful custom toasters
+window.addEventListener('error', (event) => {
+  // Prevent potential recursion if error arises inside toaster rendering
+  if (event.message && (event.message.includes('toast') || event.message.includes('Toast'))) return;
+  console.error(
+    '[Global Exception Handler] Intercepted runtime error:',
+    event.error || event.message
+  );
+  import('./state-store').then((m) => {
+    m.showToast(`Runtime Exception: ${event.message || 'An unexpected error occurred'}`, 'error');
+  });
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('[Global Rejection Handler] Intercepted async failure:', event.reason);
+  const reasonMessage = event.reason
+    ? event.reason.message || String(event.reason)
+    : 'Promise rejected without description';
+  import('./state-store').then((m) => {
+    m.showToast(`Async Rejection: ${reasonMessage}`, 'error');
+  });
 });

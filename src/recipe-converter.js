@@ -44,9 +44,6 @@ export const STAPLE_DENSITIES = {
   'chocolate chips': { cup: 170, tbsp: 10.6, tsp: 3.5 }
 };
 
-// Pre-sorted density lookup keys by length descending for optimal fuzzy matches (brown sugar matches before sugar)
-const SORTED_STAPLE_KEYS = Object.keys(STAPLE_DENSITIES).sort((a, b) => b.length - a.length);
-
 /**
  * Normalizes common volume units for matching.
  * @param {string} unit

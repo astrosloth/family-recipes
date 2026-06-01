@@ -5,7 +5,7 @@
  */
 
 import { getState, updateState, showToast } from '../state-store';
-import { formatQuantity, formatIngredientQuantity } from '../recipe-parser';
+import { formatIngredientQuantity } from '../recipe-parser';
 
 /**
  * Renders the Shopping list dashboard.

@@ -1,4 +1,3 @@
-/* global process */
 import { defineConfig } from 'vite';
 import fs from 'fs';
 import path from 'path';
@@ -12,7 +11,7 @@ const copyRecipesPlugin = () => ({
 
     if (fs.existsSync(srcDir)) {
       fs.cpSync(srcDir, destDir, { recursive: true, force: true });
-      console.log('[copy-recipes] Successfully copied recipes/ to dist/recipes/');
+      console.info('[copy-recipes] Successfully copied recipes/ to dist/recipes/');
     }
   }
 });
@@ -27,6 +26,10 @@ export default defineConfig(() => {
   return {
     base: basePath,
     plugins: [copyRecipesPlugin()],
+    test: {
+      setupFiles: ['./src/vitest-setup.js'],
+      environment: 'node'
+    },
     server: {
       port: 3000,
       open: true

@@ -5,7 +5,7 @@
  */
 
 import { getState, updateState, showToast } from '../state-store';
-import { formatQuantity, formatIngredientQuantity } from '../recipe-parser';
+import { formatIngredientQuantity } from '../recipe-parser';
 import { scaleAndConvertIngredient } from '../recipe-converter';
 import { deleteRecipeFile } from '../github-service';
 import { marked } from 'marked';
