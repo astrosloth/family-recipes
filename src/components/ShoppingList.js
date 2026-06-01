@@ -5,7 +5,7 @@
  */
 
 import { getState, updateState, showToast } from '../state-store';
-import { formatQuantity } from '../recipe-parser';
+import { formatQuantity, formatIngredientQuantity } from '../recipe-parser';
 
 /**
  * Renders the Shopping list dashboard.
@@ -56,11 +56,8 @@ export const renderShoppingList = (container) => {
             <div style="display: flex; flex-direction: column; gap: 4px;">
               ${shoppingList
                 .map((item) => {
-                  const qtyStr = item.quantity
-                    ? `${formatQuantity(item.quantity)} `
-                    : item.rawQuantity
-                      ? `${item.rawQuantity} `
-                      : '';
+                  const formattedQty = formatIngredientQuantity(item.quantity, item.rawQuantity);
+                  const qtyStr = formattedQty ? `${formattedQty} ` : '';
                   const unitStr = item.unit ? `${item.unit} ` : '';
                   const sourceStr = item.recipeTitle
                     ? `<span style="font-size: 11px; color: hsl(var(--text-tertiary-hsl)); margin-left: 8px; font-style: italic;">(from ${item.recipeTitle})</span>`

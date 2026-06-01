@@ -141,3 +141,32 @@ export const convertIngredientToWeight = (ingredient) => {
  */
 export const processIngredients = (ingredientsList, activeGrams = false) =>
   activeGrams ? ingredientsList.map(convertIngredientToWeight) : ingredientsList;
+
+/**
+ * Scales an ingredient quantity and converts it to metric weight in grams if appropriate.
+ * @param {object} ingredient - The ingredient record ({ quantity, unit, name, scalable, rawQuantity, originalText })
+ * @param {number} scaleFactor - The scale multiplier for servings
+ * @param {boolean} gramsMode - Whether metric weight conversion is active
+ * @returns {object} The scaled and converted ingredient properties ({ quantity, unit, name })
+ */
+export const scaleAndConvertIngredient = (ingredient, scaleFactor, gramsMode) => {
+  let displayQty = ingredient.quantity ? ingredient.quantity * scaleFactor : null;
+  let displayUnit = ingredient.unit;
+  let displayText = ingredient.name;
+
+  if (gramsMode && ingredient.scalable) {
+    const converted = convertIngredientToWeight({
+      ...ingredient,
+      quantity: displayQty
+    });
+    displayQty = converted.quantity;
+    displayUnit = converted.unit;
+    displayText = converted.name;
+  }
+
+  return {
+    quantity: displayQty,
+    unit: displayUnit,
+    name: displayText
+  };
+};

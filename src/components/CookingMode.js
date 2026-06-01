@@ -5,8 +5,8 @@
  */
 
 import { getState, updateState, showToast, stopCookingTimer } from '../state-store';
-import { formatQuantity } from '../recipe-parser';
-import { convertIngredientToWeight } from '../recipe-converter';
+import { formatQuantity, formatIngredientQuantity } from '../recipe-parser';
+import { scaleAndConvertIngredient } from '../recipe-converter';
 import { marked } from 'marked';
 
 /**
@@ -60,22 +60,13 @@ export const renderCookingMode = (appShellContainer) => {
           <ul class="ingredients-list" style="gap: 10px;">
             ${recipe.ingredients
               .map((ing, index) => {
-                // Apply portions
-                let displayQty = ing.quantity ? ing.quantity * scaleFactor : null;
-                let displayUnit = ing.unit;
-                let displayText = ing.name;
+                const {
+                  quantity: displayQty,
+                  unit: displayUnit,
+                  name: displayText
+                } = scaleAndConvertIngredient(ing, scaleFactor, gramsMode);
 
-                if (gramsMode && ing.scalable) {
-                  const converted = convertIngredientToWeight({
-                    ...ing,
-                    quantity: displayQty
-                  });
-                  displayQty = converted.quantity;
-                  displayUnit = converted.unit;
-                  displayText = converted.name;
-                }
-
-                const qtyStr = displayQty ? formatQuantity(displayQty) : ing.rawQuantity || '';
+                const qtyStr = formatIngredientQuantity(displayQty, ing.rawQuantity);
                 const isChecked = cookingPrepped.includes(`${recipe.id}-ing-${index}`);
 
                 return `
@@ -84,7 +75,7 @@ export const renderCookingMode = (appShellContainer) => {
                     <i class="fa-solid fa-check"></i>
                   </div>
                   <span class="ingredient-text">
-                    ${displayQty || ing.rawQuantity ? `<span class="ingredient-quantity-badge" style="color: hsl(var(--accent-primary-hsl));">${qtyStr}</span>` : ''}
+                    ${qtyStr ? `<span class="ingredient-quantity-badge" style="color: hsl(var(--accent-primary-hsl));">${qtyStr}</span>` : ''}
                     ${displayUnit ? `<span class="ingredient-quantity-badge" style="color: rgba(255,255,255,0.4); font-weight: 500;">${displayUnit}</span>` : ''}
                     ${displayText}
                   </span>

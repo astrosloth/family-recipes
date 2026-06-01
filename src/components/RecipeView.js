@@ -5,8 +5,8 @@
  */
 
 import { getState, updateState, showToast } from '../state-store';
-import { formatQuantity } from '../recipe-parser';
-import { convertIngredientToWeight } from '../recipe-converter';
+import { formatQuantity, formatIngredientQuantity } from '../recipe-parser';
+import { scaleAndConvertIngredient } from '../recipe-converter';
 import { deleteRecipeFile } from '../github-service';
 import { marked } from 'marked';
 
@@ -50,13 +50,10 @@ const injectRecipeSchemaJson = (recipe) => {
     recipeCategory: recipe.categories[0] || 'Cooking',
     keywords: recipe.tags.join(', '),
     recipeIngredient: recipe.ingredients.map((i) => {
-      const qtyStr = i.quantity
-        ? `${formatQuantity(i.quantity)} `
-        : i.rawQuantity
-          ? `${i.rawQuantity} `
-          : '';
+      const qtyStr = formatIngredientQuantity(i.quantity, i.rawQuantity);
+      const qtyWithSpace = qtyStr ? `${qtyStr} ` : '';
       const unitStr = i.unit ? `${i.unit} ` : '';
-      return `${qtyStr}${unitStr}${i.name}`.trim();
+      return `${qtyWithSpace}${unitStr}${i.name}`.trim();
     }),
     recipeInstructions: recipe.instructions.map((step) => ({
       '@type': 'HowToStep',
@@ -203,23 +200,13 @@ export const renderRecipeView = (container) => {
           <ul class="ingredients-list">
             ${recipe.ingredients
               .map((ing, index) => {
-                // Apply servings scale
-                let displayQty = ing.quantity ? ing.quantity * scaleFactor : null;
-                let displayUnit = ing.unit;
-                let displayText = ing.name;
+                const {
+                  quantity: displayQty,
+                  unit: displayUnit,
+                  name: displayText
+                } = scaleAndConvertIngredient(ing, scaleFactor, gramsMode);
 
-                // Apply metric weight density conversion if active
-                if (gramsMode && ing.scalable) {
-                  const converted = convertIngredientToWeight({
-                    ...ing,
-                    quantity: displayQty
-                  });
-                  displayQty = converted.quantity;
-                  displayUnit = converted.unit;
-                  displayText = converted.name;
-                }
-
-                const qtyStr = displayQty ? formatQuantity(displayQty) : ing.rawQuantity || '';
+                const qtyStr = formatIngredientQuantity(displayQty, ing.rawQuantity);
                 const isChecked = cookingPrepped.includes(`${recipe.id}-ing-${index}`);
 
                 return `
@@ -228,7 +215,7 @@ export const renderRecipeView = (container) => {
                     <i class="fa-solid fa-check"></i>
                   </div>
                   <span class="ingredient-text">
-                    ${displayQty || ing.rawQuantity ? `<span class="ingredient-quantity-badge">${qtyStr}</span>` : ''}
+                    ${qtyStr ? `<span class="ingredient-quantity-badge">${qtyStr}</span>` : ''}
                     ${displayUnit ? `<span class="ingredient-quantity-badge" style="color: hsl(var(--text-secondary-hsl)); font-weight: 500;">${displayUnit}</span>` : ''}
                     ${displayText}
                   </span>
@@ -359,20 +346,11 @@ export const renderRecipeView = (container) => {
   // Add Ingredients to Aggregated Shopping List
   document.getElementById('btn-add-all-shopping').addEventListener('click', () => {
     const listToInject = recipe.ingredients.map((ing) => {
-      // Scale quantities
-      let displayQty = ing.quantity ? ing.quantity * scaleFactor : null;
-      let displayUnit = ing.unit;
-      let displayName = ing.name;
-
-      if (gramsMode && ing.scalable) {
-        const converted = convertIngredientToWeight({
-          ...ing,
-          quantity: displayQty
-        });
-        displayQty = converted.quantity;
-        displayUnit = converted.unit;
-        displayName = converted.name;
-      }
+      const {
+        quantity: displayQty,
+        unit: displayUnit,
+        name: displayName
+      } = scaleAndConvertIngredient(ing, scaleFactor, gramsMode);
 
       return {
         id: `${recipe.id}-shop-${Math.random().toString(36).substr(2, 5)}`,

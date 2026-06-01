@@ -81,6 +81,19 @@ export const formatQuantity = (decimalVal) => {
 };
 
 /**
+ * Safely formats an ingredient quantity, falling back to its raw quantity string representation if the parsed quantity is null (e.g. ranges).
+ * @param {number|null} quantity - The parsed or scaled numeric quantity
+ * @param {string} rawQuantity - The original raw quantity string
+ * @returns {string} The formatted quantity string
+ */
+export const formatIngredientQuantity = (quantity, rawQuantity = '') => {
+  if (quantity) {
+    return formatQuantity(quantity);
+  }
+  return rawQuantity ? rawQuantity.trim() : '';
+};
+
+/**
  * Resolves a local markdown relative image path to its absolute environment URL.
  * @param {string} imagePath
  * @param {object|null} githubConfig
