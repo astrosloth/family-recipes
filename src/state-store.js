@@ -18,6 +18,8 @@ let state = {
   githubConfig: JSON.parse(localStorage.getItem('family-recipes-git-config')) || null,
   gramsMode: JSON.parse(localStorage.getItem('family-recipes-grams-mode')) || false,
   servingsScale: {},
+  appTitle: localStorage.getItem('family-recipes-app-title') || 'Our Family Recipes',
+  accentColor: localStorage.getItem('family-recipes-accent-color') || '#D97706',
 
   // Cooking focus state
   activeCookingStep: 1,
@@ -48,6 +50,8 @@ export const updateState = (newState) => {
   const oldShopping = state.shoppingList;
   const oldGrams = state.gramsMode;
   const oldGit = state.githubConfig;
+  const oldTitle = state.appTitle;
+  const oldAccent = state.accentColor;
 
   state = { ...state, ...newState };
 
@@ -67,6 +71,14 @@ export const updateState = (newState) => {
     } else {
       localStorage.removeItem('family-recipes-git-config');
     }
+  }
+  if (state.appTitle !== oldTitle) {
+    localStorage.setItem('family-recipes-app-title', state.appTitle);
+    document.title = state.appTitle;
+  }
+  if (state.accentColor !== oldAccent) {
+    localStorage.setItem('family-recipes-accent-color', state.accentColor);
+    applyCustomAccent(state.accentColor);
   }
 
   // Notify all active rendering subscribers
@@ -193,3 +205,62 @@ export const toggleTheme = () => {
 
   updateState({});
 };
+
+// --- CUSTOM ACCENT COLORS HSL GENERATOR SYSTEM ---
+const hexToHsl = (hex) => {
+  hex = hex.replace(/^#/, '');
+  if (hex.length === 3) {
+    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  }
+  let r = parseInt(hex.substring(0, 2), 16) / 255;
+  let g = parseInt(hex.substring(2, 4), 16) / 255;
+  let b = parseInt(hex.substring(4, 6), 16) / 255;
+
+  let max = Math.max(r, g, b),
+    min = Math.min(r, g, b);
+  let h,
+    s,
+    l = (max + min) / 2;
+
+  if (max === min) {
+    h = s = 0;
+  } else {
+    let d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      case b:
+        h = (r - g) / d + 4;
+        break;
+    }
+    h /= 6;
+  }
+
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100)
+  };
+};
+
+export const applyCustomAccent = (hexColor) => {
+  try {
+    const { h, s, l } = hexToHsl(hexColor);
+    document.documentElement.style.setProperty('--accent-primary-hsl', `${h}, ${s}%, ${l}%`);
+    document.documentElement.style.setProperty(
+      '--accent-primary-hover-hsl',
+      `${h}, ${s}%, ${Math.max(0, l - 10)}%`
+    );
+  } catch (e) {
+    console.warn('[Theme Engine] Failed to apply custom accent color:', e);
+  }
+};
+
+// Apply initial custom configuration on library load
+applyCustomAccent(state.accentColor);
+document.title = state.appTitle;

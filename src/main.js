@@ -41,6 +41,37 @@ const loadStaticRecipes = () => {
 };
 
 /**
+ * Loads the repository config.json setting custom app title and accent color.
+ * Supports both Live Sync (GitHub API) and Reader (Static Fetch) fallbacks.
+ * @param {object} activeConfig
+ */
+const loadConfiguration = async (activeConfig) => {
+  try {
+    let rawConfig = null;
+    if (activeConfig && activeConfig.token) {
+      rawConfig = await fetchRawFile(activeConfig, 'recipes/config.json');
+    } else {
+      const res = await fetch('recipes/config.json');
+      if (res.ok) {
+        rawConfig = await res.text();
+      }
+    }
+
+    if (rawConfig) {
+      const configObj = JSON.parse(rawConfig);
+      if (configObj && (configObj.appTitle || configObj.accentColor)) {
+        updateState({
+          appTitle: configObj.appTitle || 'Our Family Recipes',
+          accentColor: configObj.accentColor || '#D97706'
+        });
+      }
+    }
+  } catch (err) {
+    console.log('[Theme Engine] Configuration load bypassed:', err.message);
+  }
+};
+
+/**
  * Master initialization strategy fetching from live GitHub or static glob.
  */
 export const initializeRecipes = async () => {
@@ -55,6 +86,9 @@ export const initializeRecipes = async () => {
   if (sharedConfig) {
     updateState({ githubConfig: sharedConfig });
   }
+
+  // Synchronize app title and accent colors from repository config
+  await loadConfiguration(activeConfig);
 
   if (activeConfig && activeConfig.token) {
     // Live GitHub Sync Mode
@@ -164,7 +198,7 @@ const renderApp = () => {
       <div class="container nav-wrapper">
         <div class="logo" id="nav-logo">
           <i class="fa-solid fa-utensils"></i>
-          <span>Our Family Recipes</span>
+          <span>${state.appTitle || 'Our Family Recipes'}</span>
         </div>
         <nav class="nav-links">
           <div class="nav-link ${state.view === 'home' ? 'active' : ''}" id="nav-home">
