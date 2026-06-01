@@ -3,8 +3,10 @@
  * Pure-functional pipeline transforming volume units into precise metric weights.
  */
 
+import { getState } from './state-store';
+
 // Density conversion tables: gram weights per volumetric unit (cup, tbsp, tsp)
-const STAPLE_DENSITIES = {
+export const STAPLE_DENSITIES = {
   flour: { cup: 120, tbsp: 7.5, tsp: 2.5 },
   'all-purpose flour': { cup: 120, tbsp: 7.5, tsp: 2.5 },
   'bread flour': { cup: 127, tbsp: 8, tsp: 2.6 },
@@ -59,20 +61,35 @@ const normalizeUnit = (unit) => {
 };
 
 /**
+ * Merges hardcoded built-in densities with user-customized ones from the state store.
+ * @returns {object}
+ */
+export const getMergedDensities = () => {
+  try {
+    const { customDensities } = getState();
+    return { ...STAPLE_DENSITIES, ...customDensities };
+  } catch {
+    return STAPLE_DENSITIES;
+  }
+};
+
+/**
  * Searches density tables for a matching ingredient name.
  * Uses a pure fuzzy lowercase substring comparison.
  * @param {string} name
+ * @param {object} densities
  * @returns {string|null}
  */
-const findStapleKey = (name) => {
+const findStapleKey = (name, densities) => {
   const cleanName = name.toLowerCase().trim();
 
   // Try exact matches first
-  const exactMatch = Object.keys(STAPLE_DENSITIES).find((k) => k === cleanName);
+  const exactMatch = Object.keys(densities).find((k) => k === cleanName);
   if (exactMatch) return exactMatch;
 
-  // Try substring checks (e.g. "sifted flour" matching "flour") using pre-compiled keys
-  return SORTED_STAPLE_KEYS.find((key) => cleanName.includes(key));
+  // Try substring checks (e.g. "sifted flour" matching "flour") sorted by length descending
+  const sortedKeys = Object.keys(densities).sort((a, b) => b.length - a.length);
+  return sortedKeys.find((key) => cleanName.includes(key));
 };
 
 /**
@@ -92,12 +109,13 @@ export const convertIngredientToWeight = (ingredient) => {
     return ingredient; // Already a weight, count, or custom volume
   }
 
-  const stapleKey = findStapleKey(ingredient.name);
+  const densities = getMergedDensities();
+  const stapleKey = findStapleKey(ingredient.name, densities);
   if (!stapleKey) {
     return ingredient; // No matching density staple found
   }
 
-  const conversionFactors = STAPLE_DENSITIES[stapleKey];
+  const conversionFactors = densities[stapleKey];
   const factor = conversionFactors[normUnit];
 
   if (!factor) {

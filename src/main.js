@@ -59,10 +59,11 @@ const loadConfiguration = async (activeConfig) => {
 
     if (rawConfig) {
       const configObj = JSON.parse(rawConfig);
-      if (configObj && (configObj.appTitle || configObj.accentColor)) {
+      if (configObj) {
         updateState({
           appTitle: configObj.appTitle || 'Our Family Recipes',
-          accentColor: configObj.accentColor || '#D97706'
+          accentColor: configObj.accentColor || '#D97706',
+          customDensities: configObj.customDensities || getState().customDensities || {}
         });
       }
     }

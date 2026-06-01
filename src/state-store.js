@@ -20,6 +20,7 @@ let state = {
   servingsScale: {},
   appTitle: localStorage.getItem('family-recipes-app-title') || 'Our Family Recipes',
   accentColor: localStorage.getItem('family-recipes-accent-color') || '#D97706',
+  customDensities: JSON.parse(localStorage.getItem('family-recipes-custom-densities')) || {},
 
   // Cooking focus state
   activeCookingStep: 1,
@@ -52,6 +53,7 @@ export const updateState = (newState) => {
   const oldGit = state.githubConfig;
   const oldTitle = state.appTitle;
   const oldAccent = state.accentColor;
+  const oldDensities = state.customDensities;
 
   state = { ...state, ...newState };
 
@@ -79,6 +81,9 @@ export const updateState = (newState) => {
   if (state.accentColor !== oldAccent) {
     localStorage.setItem('family-recipes-accent-color', state.accentColor);
     applyCustomAccent(state.accentColor);
+  }
+  if (state.customDensities !== oldDensities) {
+    localStorage.setItem('family-recipes-custom-densities', JSON.stringify(state.customDensities));
   }
 
   // Notify all active rendering subscribers

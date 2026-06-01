@@ -6,6 +6,7 @@
 
 import { getState, updateState, showToast } from '../state-store';
 import { checkTokenValidity, autoDetectRepo, generateQuickConfigLink } from '../github-service';
+import { STAPLE_DENSITIES } from '../recipe-converter';
 
 /**
  * Renders the Settings and Sync panel.
@@ -156,6 +157,138 @@ export const renderSyncSettings = (container) => {
               </button>
             </div>
           </form>
+        </div>
+
+        <!-- Ingredient Densities Manager -->
+        <div class="quick-link-box" style="margin-top: 24px;">
+          <h4><i class="fa-solid fa-weight-hanging" style="color: hsl(var(--accent-primary-hsl)); margin-right: 8px;"></i> Ingredient Densities Manager</h4>
+          <p class="settings-help">
+            Define or override the weight (in grams) for 1 cup, 1 tablespoon, and 1 teaspoon of any ingredient. 
+            Custom definitions take precedence over built-in values, and will be used instantly for volume-to-weight scaling!
+          </p>
+          
+          <!-- Add/Edit form -->
+          <form id="density-form" style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px; padding: 16px; background: hsl(var(--bg-primary-hsl)); border-radius: var(--border-radius-sm); border: 1px solid hsl(var(--border-color-hsl));">
+            <h5 style="margin: 0; font-family: var(--font-serif); font-size: 15px; color: hsl(var(--text-primary-hsl));" id="density-form-title">Add / Edit Custom Density</h5>
+            
+            <div class="form-group">
+              <label class="form-label">Ingredient Name</label>
+              <input type="text" id="density-name" class="form-input" placeholder="e.g. almond flour, coconut flour" required />
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">1 Cup weight (g)</label>
+                <input type="number" id="density-cup" class="form-input" placeholder="e.g. 120" step="0.1" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">1 Tbsp weight (g) <span style="font-size: 10px; opacity: 0.7;">(auto-filled)</span></label>
+                <input type="number" id="density-tbsp" class="form-input" placeholder="e.g. 7.5" step="0.01" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">1 Tsp weight (g) <span style="font-size: 10px; opacity: 0.7;">(auto-filled)</span></label>
+                <input type="number" id="density-tsp" class="form-input" placeholder="e.g. 2.5" step="0.01" required />
+              </div>
+            </div>
+            
+            <div style="display: flex; gap: 12px; justify-content: flex-end; align-items: center;">
+              <button type="button" class="btn btn-secondary" id="btn-clear-density-form" style="padding: 8px 16px; font-size: 12px; width: auto;">Clear</button>
+              <button type="submit" class="btn btn-primary" id="btn-save-density" style="padding: 8px 16px; font-size: 12px; width: auto;">
+                <i class="fa-solid fa-circle-plus"></i> Save Density
+              </button>
+            </div>
+          </form>
+          
+          <!-- List of custom densities -->
+          <div style="margin-top: 20px;">
+            <h5 style="margin: 0 0 10px 0; font-family: var(--font-serif); font-size: 15px; color: hsl(var(--text-primary-hsl));">Your Custom Densities & Overrides</h5>
+            
+            <div id="custom-densities-list" style="display: flex; flex-direction: column; gap: 8px;">
+              ${
+                Object.keys(getState().customDensities || {}).length === 0
+                  ? `
+                <div style="padding: 16px; background: rgba(0, 0, 0, 0.02); border-radius: var(--border-radius-sm); border: 1px dashed hsl(var(--border-color-hsl)); text-align: center; color: hsl(var(--text-secondary-hsl)); font-size: 13.5px;">
+                  No custom ingredient densities defined yet. Create one or select a built-in staple below to override it!
+                </div>
+              `
+                  : `
+                <div style="overflow-x: auto;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                    <thead>
+                      <tr style="border-bottom: 2px solid hsl(var(--border-color-hsl)); color: hsl(var(--text-secondary-hsl));">
+                        <th style="padding: 8px 4px;">Ingredient</th>
+                        <th style="padding: 8px 4px;">1 Cup</th>
+                        <th style="padding: 8px 4px;">1 Tbsp</th>
+                        <th style="padding: 8px 4px;">1 Tsp</th>
+                        <th style="padding: 8px 4px; text-align: right;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${Object.entries(getState().customDensities || {})
+                        .map(
+                          ([name, data]) => `
+                        <tr style="border-bottom: 1px solid hsl(var(--border-color-hsl)); color: hsl(var(--text-primary-hsl));">
+                          <td style="padding: 8px 4px; font-weight: 600;">${name}</td>
+                          <td style="padding: 8px 4px;">${data.cup}g</td>
+                          <td style="padding: 8px 4px;">${data.tbsp}g</td>
+                          <td style="padding: 8px 4px;">${data.tsp}g</td>
+                          <td style="padding: 8px 4px; text-align: right;">
+                            <button class="icon-button edit-density-btn" data-edit-density="${name}" title="Edit Density" style="color: hsl(var(--accent-primary-hsl)); border: none; background: transparent; cursor: pointer; padding: 4px; font-size: 14px;"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button class="icon-button delete-density-btn" data-delete-density="${name}" title="Delete Density" style="color: hsl(var(--accent-tertiary-hsl)); border: none; background: transparent; cursor: pointer; padding: 4px; font-size: 14px;"><i class="fa-solid fa-trash-can"></i></button>
+                          </td>
+                        </tr>
+                      `
+                        )
+                        .join('')}
+                    </tbody>
+                  </table>
+                </div>
+              `
+              }
+            </div>
+          </div>
+
+          <!-- Built-in Staples Reference list -->
+          <div style="margin-top: 24px; border-top: 1px solid hsl(var(--border-color-hsl)); padding-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" id="toggle-built-in-ref">
+              <h5 style="margin: 0; font-family: var(--font-serif); font-size: 15px; color: hsl(var(--text-primary-hsl));">
+                <i class="fa-solid fa-book" style="margin-right: 6px; opacity: 0.7;"></i> Built-in Reference Database
+              </h5>
+              <span id="built-in-toggle-icon" style="font-size: 12px; color: hsl(var(--text-secondary-hsl));"><i class="fa-solid fa-chevron-down"></i> Expand</span>
+            </div>
+            
+            <div id="built-in-densities-container" class="hidden" style="margin-top: 16px; overflow-x: auto; max-height: 250px; overflow-y: auto; border: 1px solid hsl(var(--border-color-hsl)); border-radius: var(--border-radius-sm); padding: 8px;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
+                <thead>
+                  <tr style="border-bottom: 2px solid hsl(var(--border-color-hsl)); color: hsl(var(--text-secondary-hsl));">
+                    <th style="padding: 6px 4px;">Ingredient</th>
+                    <th style="padding: 6px 4px;">1 Cup</th>
+                    <th style="padding: 6px 4px;">1 Tbsp</th>
+                    <th style="padding: 6px 4px;">1 Tsp</th>
+                    <th style="padding: 6px 4px; text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${Object.entries(STAPLE_DENSITIES)
+                    .sort((a, b) => a[0].localeCompare(b[0]))
+                    .map(
+                      ([name, data]) => `
+                    <tr style="border-bottom: 1px solid hsl(var(--border-color-hsl)); color: hsl(var(--text-primary-hsl));">
+                      <td style="padding: 6px 4px; font-weight: 500;">${name}</td>
+                      <td style="padding: 6px 4px;">${data.cup}g</td>
+                      <td style="padding: 6px 4px;">${data.tbsp}g</td>
+                      <td style="padding: 6px 4px;">${data.tsp}g</td>
+                      <td style="padding: 6px 4px; text-align: right;">
+                        <button class="btn btn-secondary override-density-btn" data-override-density="${name}" style="padding: 4px 8px; font-size: 11px; width: auto; display: inline-flex;">Override</button>
+                      </td>
+                    </tr>
+                  `
+                    )
+                    .join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -350,7 +483,11 @@ export const renderSyncSettings = (container) => {
       if (isConnected) {
         try {
           showToast('Syncing theme configuration to GitHub...', 'info');
-          const configObj = { appTitle: newTitle, accentColor: newColor };
+          const configObj = {
+            appTitle: newTitle,
+            accentColor: newColor,
+            customDensities: getState().customDensities || {}
+          };
           const { commitRecipeFile } = await import('../github-service');
 
           await commitRecipeFile(githubConfig, 'config.json', JSON.stringify(configObj, null, 2));
@@ -365,5 +502,189 @@ export const renderSyncSettings = (container) => {
       // Force a redraw of the app shell header logo
       import('../main').then((m) => m.initializeRecipes());
     });
+  }
+
+  // --- INGREDIENT DENSITIES MANAGER EVENT HANDLERS ---
+
+  const densityForm = document.getElementById('density-form');
+  if (densityForm) {
+    const nameInput = document.getElementById('density-name');
+    const cupInput = document.getElementById('density-cup');
+    const tbspInput = document.getElementById('density-tbsp');
+    const tspInput = document.getElementById('density-tsp');
+    const formTitle = document.getElementById('density-form-title');
+
+    // Auto-calculate Tbsp and Tsp when Cup is typed (1 Cup = 16 Tbsp = 48 Tsp)
+    cupInput.addEventListener('input', (e) => {
+      const cupVal = parseFloat(e.target.value);
+      if (!isNaN(cupVal) && cupVal > 0) {
+        tbspInput.value = (Math.round((cupVal / 16) * 100) / 100).toString();
+        tspInput.value = (Math.round((cupVal / 48) * 100) / 100).toString();
+      } else {
+        tbspInput.value = '';
+        tspInput.value = '';
+      }
+    });
+
+    // Handle Form Submission (Add/Edit Density)
+    densityForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = nameInput.value.trim().toLowerCase();
+      const cup = parseFloat(cupInput.value);
+      const tbsp = parseFloat(tbspInput.value);
+      const tsp = parseFloat(tspInput.value);
+
+      if (!name || isNaN(cup) || isNaN(tbsp) || isNaN(tsp)) {
+        showToast('Please fill out all density values!', 'error');
+        return;
+      }
+
+      showToast('Saving custom density...', 'info');
+
+      // Update densities immutably
+      const { customDensities } = getState();
+      const updatedDensities = {
+        ...customDensities,
+        [name]: { cup, tbsp, tsp }
+      };
+
+      updateState({ customDensities: updatedDensities });
+
+      // Sync to GitHub if connected
+      if (isConnected) {
+        try {
+          showToast('Syncing densities to GitHub...', 'info');
+          const configObj = {
+            appTitle: getState().appTitle,
+            accentColor: getState().accentColor,
+            customDensities: updatedDensities
+          };
+          const { commitRecipeFile } = await import('../github-service');
+          await commitRecipeFile(githubConfig, 'config.json', JSON.stringify(configObj, null, 2));
+          showToast('Densities synchronized to GitHub successfully!', 'success');
+        } catch (err) {
+          showToast(`GitHub Sync Failed: ${err.message}`, 'error');
+        }
+      } else {
+        showToast('Density saved locally!', 'success');
+      }
+
+      // Re-render settings panel to redraw the table
+      renderSyncSettings(container);
+    });
+
+    // Handle Form Clear
+    document.getElementById('btn-clear-density-form').addEventListener('click', () => {
+      nameInput.value = '';
+      cupInput.value = '';
+      tbspInput.value = '';
+      tspInput.value = '';
+      formTitle.innerText = 'Add / Edit Custom Density';
+      nameInput.disabled = false;
+      showToast('Form cleared', 'info');
+    });
+
+    // Handle Edit Custom Density
+    document.querySelectorAll('[data-edit-density]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const name = e.currentTarget.getAttribute('data-edit-density');
+        const { customDensities } = getState();
+        const data = customDensities[name];
+
+        if (data) {
+          nameInput.value = name;
+          nameInput.disabled = true; // Lock name during edits
+          cupInput.value = data.cup;
+          tbspInput.value = data.tbsp;
+          tspInput.value = data.tsp;
+          formTitle.innerText = `Edit Custom Density: "${name}"`;
+          cupInput.focus();
+          showToast(`Editing "${name}" density...`, 'info');
+        }
+      });
+    });
+
+    // Handle Delete Custom Density
+    document.querySelectorAll('[data-delete-density]').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        const name = e.currentTarget.getAttribute('data-delete-density');
+        if (
+          !window.confirm(
+            `Are you sure you want to delete the custom density override for "${name}"?`
+          )
+        )
+          return;
+
+        showToast('Deleting custom density...', 'info');
+
+        const { customDensities } = getState();
+        const updatedDensities = { ...customDensities };
+        delete updatedDensities[name];
+
+        updateState({ customDensities: updatedDensities });
+
+        // Sync to GitHub if connected
+        if (isConnected) {
+          try {
+            showToast('Syncing changes to GitHub...', 'info');
+            const configObj = {
+              appTitle: getState().appTitle,
+              accentColor: getState().accentColor,
+              customDensities: updatedDensities
+            };
+            const { commitRecipeFile } = await import('../github-service');
+            await commitRecipeFile(githubConfig, 'config.json', JSON.stringify(configObj, null, 2));
+            showToast('Deleted and synced successfully!', 'success');
+          } catch (err) {
+            showToast(`GitHub Sync Failed: ${err.message}`, 'error');
+          }
+        } else {
+          showToast('Density deleted locally!', 'success');
+        }
+
+        // Re-render settings panel to redraw the table
+        renderSyncSettings(container);
+      });
+    });
+
+    // Handle Override Built-in Reference Density
+    document.querySelectorAll('[data-override-density]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const name = e.currentTarget.getAttribute('data-override-density');
+        const data = STAPLE_DENSITIES[name];
+
+        if (data) {
+          nameInput.value = name;
+          nameInput.disabled = true; // Lock name since we are overriding a built-in staple
+          cupInput.value = data.cup;
+          tbspInput.value = data.tbsp;
+          tspInput.value = data.tsp;
+          formTitle.innerText = `Override Staple Density: "${name}"`;
+          cupInput.focus();
+
+          // Scroll up smoothly to the form
+          densityForm.scrollIntoView({ behavior: 'smooth' });
+          showToast(`Loaded built-in values for "${name}" to override!`, 'info');
+        }
+      });
+    });
+
+    // Handle Toggle Built-in reference accordion
+    const toggleHeader = document.getElementById('toggle-built-in-ref');
+    const containerRef = document.getElementById('built-in-densities-container');
+    const toggleIcon = document.getElementById('built-in-toggle-icon');
+
+    if (toggleHeader && containerRef && toggleIcon) {
+      toggleHeader.addEventListener('click', () => {
+        const isCollapsed = containerRef.classList.contains('hidden');
+        if (isCollapsed) {
+          containerRef.classList.remove('hidden');
+          toggleIcon.innerHTML = '<i class="fa-solid fa-chevron-up"></i> Collapse';
+        } else {
+          containerRef.classList.add('hidden');
+          toggleIcon.innerHTML = '<i class="fa-solid fa-chevron-down"></i> Expand';
+        }
+      });
+    }
   }
 };
