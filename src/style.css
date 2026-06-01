@@ -1807,3 +1807,100 @@ input:checked + .slider:before {
     letter-spacing: 0.2px;
   }
 }
+
+/* --- TAGS PILL INPUT AND AUTOCOMPLETE --- */
+.tags-input-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid hsl(var(--border-color-hsl));
+  background: hsl(var(--bg-primary-hsl));
+  cursor: text;
+  position: relative;
+  transition: all var(--transition-fast);
+  width: 100%;
+}
+.tags-input-container:focus-within {
+  border-color: hsl(var(--accent-primary-hsl));
+  box-shadow: 0 0 0 3px hsl(var(--accent-primary-hsl), 0.15);
+}
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: hsl(var(--accent-primary-hsl), 0.1);
+  color: hsl(var(--accent-primary-hsl));
+  border: 1px solid hsl(var(--accent-primary-hsl), 0.2);
+  border-radius: var(--border-radius-sm);
+  animation: fadeIn 0.15s ease-out;
+  user-select: none;
+}
+.tag-pill i {
+  cursor: pointer;
+  font-size: 11px;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+}
+.tag-pill i:hover {
+  opacity: 1;
+}
+.tags-text-input {
+  border: none;
+  background: transparent;
+  color: hsl(var(--text-primary-hsl));
+  font-family: var(--font-sans);
+  font-size: 15px;
+  outline: none;
+  flex: 1;
+  min-width: 120px;
+  padding: 4px 0;
+}
+.tags-autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 6px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid hsl(var(--border-color-hsl));
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--card-shadow);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+.autocomplete-suggestion {
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  color: hsl(var(--text-secondary-hsl));
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+.autocomplete-suggestion:hover,
+.autocomplete-suggestion.active {
+  background: hsl(var(--accent-primary-hsl), 0.1);
+  color: hsl(var(--accent-primary-hsl));
+}
+.autocomplete-suggestion-title {
+  padding: 8px 16px 4px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: hsl(var(--text-tertiary-hsl));
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid hsl(var(--border-color-hsl));
+  margin-bottom: 4px;
+  pointer-events: none;
+}

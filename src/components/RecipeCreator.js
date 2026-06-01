@@ -20,6 +20,7 @@ let formState = {
   image: 'images/placeholder.jpg',
   categories: ['Main Course'],
   tags: [],
+  tempTagText: '', // Track half-typed tags across re-renders
   ingredients: [{ quantity: 1, unit: 'cup', name: '' }],
   instructions: [{ step: 1, text: '' }],
   notes: [],
@@ -143,7 +144,8 @@ export const renderRecipeCreator = (container) => {
           editTarget.rawContent.match(/image:\s*["']?([\w./-]+)["']?/)?.[1] ||
           'images/placeholder.jpg',
         categories: editTarget.categories,
-        tags: editTarget.tags,
+        tags: editTarget.tags || [],
+        tempTagText: '',
         // Match structure of inputs
         ingredients: editTarget.ingredients.map((i) => ({
           quantity: i.rawQuantity !== undefined ? i.rawQuantity : i.quantity || '',
@@ -172,6 +174,7 @@ export const renderRecipeCreator = (container) => {
       image: 'images/placeholder.jpg',
       categories: ['Main Course'],
       tags: [],
+      tempTagText: '',
       ingredients: [{ quantity: 1, unit: 'cup', name: '' }],
       instructions: [{ step: 1, text: '' }],
       notes: [],
@@ -265,9 +268,23 @@ export const renderRecipeCreator = (container) => {
                 <option value="Other" ${formState.categories[0] === 'Other' ? 'selected' : ''}>Other</option>
               </select>
             </div>
-            <div class="form-group">
-              <label class="form-label">Cross-Cutting Tags (comma separated)</label>
-              <input type="text" id="recipe-tags" class="form-input" placeholder="Sweet, Cinnamon, Baking, Weekend" value="${formState.tags.join(', ')}" />
+            <div class="form-group" style="position: relative;">
+              <label class="form-label">Cross-Cutting Tags (Autocomplete suggestions available)</label>
+              <div class="tags-input-container" id="tags-input-wrapper">
+                ${formState.tags
+                  .map(
+                    (tag, idx) => `
+                  <span class="tag-pill" data-tag-idx="${idx}">
+                    ${tag} <i class="fa-solid fa-xmark data-tag-remove" data-tag-idx="${idx}"></i>
+                  </span>
+                `
+                  )
+                  .join('')}
+                <input type="text" class="tags-text-input" id="recipe-tags-input" placeholder="${formState.tags.length === 0 ? 'Type tag and press Enter...' : ''}" value="${formState.tempTagText || ''}" autocomplete="off" />
+                
+                <!-- Autocomplete Dropdown list (hidden initially) -->
+                <div class="tags-autocomplete-dropdown hidden" id="tags-autocomplete"></div>
+              </div>
             </div>
           </div>
           
@@ -370,11 +387,11 @@ export const renderRecipeCreator = (container) => {
     formState.image = document.getElementById('recipe-image')?.value || 'images/placeholder.jpg';
     formState.categories = [document.getElementById('recipe-category')?.value || 'Main Course'];
 
-    const tagsInput = document.getElementById('recipe-tags')?.value || '';
-    formState.tags = tagsInput
-      .split(',')
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
+    // Sync temporary tag text input
+    const tempTagInput = document.getElementById('recipe-tags-input');
+    if (tempTagInput) {
+      formState.tempTagText = tempTagInput.value;
+    }
 
     // Sync ingredients rows
     document.querySelectorAll('[data-ing-row]').forEach((row) => {
@@ -690,6 +707,129 @@ export const renderRecipeCreator = (container) => {
       renderRecipeCreator(container);
     });
   });
+
+  // --- DYNAMIC TAG PILLS BUILDER & AUTOCOMPLETE INTERACTION ---
+  const tagsInput = document.getElementById('recipe-tags-input');
+  const autocompleteDropdown = document.getElementById('tags-autocomplete');
+  const tagsInputWrapper = document.getElementById('tags-input-wrapper');
+
+  if (tagsInput && autocompleteDropdown && tagsInputWrapper) {
+    // Gather all unique tags from other recipes for suggestions
+    const allUniqueTags = [...new Set(recipes.flatMap((r) => r.tags || []))]
+      .filter((t) => t.trim().length > 0)
+      .sort();
+
+    const addTag = (tagText) => {
+      const cleanTag = tagText.trim().replace(/,/g, '');
+      if (cleanTag.length === 0) return;
+
+      const isDup = formState.tags.some((t) => t.toLowerCase() === cleanTag.toLowerCase());
+
+      syncFormFields();
+      if (!isDup) {
+        formState.tags = [...formState.tags, cleanTag];
+      }
+      formState.tempTagText = ''; // Clear temporary text after addition
+      renderRecipeCreator(container);
+
+      // Re-focus the input instantly
+      setTimeout(() => {
+        const input = document.getElementById('recipe-tags-input');
+        if (input) input.focus();
+      }, 0);
+    };
+
+    const showSuggestions = () => {
+      const val = tagsInput.value.toLowerCase().trim();
+
+      // Filter available suggestions (exclude already selected tags)
+      const availableSuggestions = allUniqueTags.filter(
+        (tag) => !formState.tags.map((t) => t.toLowerCase()).includes(tag.toLowerCase())
+      );
+
+      // Filter by search query
+      const filtered =
+        val.length === 0
+          ? availableSuggestions
+          : availableSuggestions.filter((tag) => tag.toLowerCase().includes(val));
+
+      if (filtered.length === 0) {
+        autocompleteDropdown.classList.add('hidden');
+        return;
+      }
+
+      autocompleteDropdown.innerHTML = `
+        <div class="autocomplete-suggestion-title">Suggested Tags</div>
+        ${filtered
+          .map(
+            (tag) => `
+          <div class="autocomplete-suggestion" data-suggest-tag="${tag}">${tag}</div>
+        `
+          )
+          .join('')}
+      `;
+      autocompleteDropdown.classList.remove('hidden');
+
+      // Bind click handlers to the suggestions
+      document.querySelectorAll('[data-suggest-tag]').forEach((item) => {
+        item.addEventListener('mousedown', (e) => {
+          e.preventDefault(); // Prevent input blur from firing before click
+          const tagToAdd = item.getAttribute('data-suggest-tag');
+          addTag(tagToAdd);
+        });
+      });
+    };
+
+    // Focus wrapper on click anywhere inside it (except tags close buttons)
+    tagsInputWrapper.addEventListener('click', (e) => {
+      if (!e.target.closest('.data-tag-remove')) {
+        tagsInput.focus();
+      }
+    });
+
+    // Show suggestions on focus
+    tagsInput.addEventListener('focus', showSuggestions);
+
+    // Filter suggestions on keyup
+    tagsInput.addEventListener('input', showSuggestions);
+
+    // Hide suggestions on blur
+    tagsInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        autocompleteDropdown.classList.add('hidden');
+      }, 150);
+    });
+
+    // Commas and enters add tag, backspaces remove the last tag
+    tagsInput.addEventListener('keydown', (e) => {
+      const val = tagsInput.value;
+
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addTag(val);
+      } else if (e.key === 'Backspace' && val.length === 0 && formState.tags.length > 0) {
+        syncFormFields();
+        formState.tags = formState.tags.slice(0, -1);
+        renderRecipeCreator(container);
+
+        setTimeout(() => {
+          const input = document.getElementById('recipe-tags-input');
+          if (input) input.focus();
+        }, 0);
+      }
+    });
+
+    // Remove Tag pill click listener
+    document.querySelectorAll('.data-tag-remove').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Avoid triggering container focus
+        const idx = Number(btn.getAttribute('data-tag-idx'));
+        syncFormFields();
+        formState.tags = formState.tags.filter((_, i) => i !== idx);
+        renderRecipeCreator(container);
+      });
+    });
+  }
 
   // Cancel Creator/Editor
   document.getElementById('btn-cancel-create').addEventListener('click', () => {
