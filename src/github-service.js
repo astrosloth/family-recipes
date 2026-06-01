@@ -348,3 +348,80 @@ export const parseQuickConfigLink = (toastCallback) => {
   }
   return null;
 };
+
+/**
+ * Queries the list of files in the `/recipes/images` directory on GitHub.
+ * @param {object} config - { owner, repo, branch, token }
+ * @returns {Promise<array>} - List of image file descriptors
+ */
+export const fetchImageFiles = async (config) => {
+  const { owner, repo, branch = 'main', token } = config;
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/recipes/images?ref=${branch}`;
+
+  try {
+    const res = await fetch(url, { headers: getHeaders(token) });
+    if (res.status === 404) {
+      return []; // Images directory doesn't exist yet
+    }
+    if (res.status !== 200) {
+      throw new Error(`GitHub images directory read failed with status ${res.status}`);
+    }
+    const files = await res.json();
+    return Array.isArray(files) ? files.filter((f) => f.type === 'file') : [];
+  } catch (err) {
+    console.error('[GitHub Service] Fetch image files list failed:', err);
+    throw err;
+  }
+};
+
+/**
+ * Deletes an image file from the repository.
+ * @param {object} config - { owner, repo, branch, token }
+ * @param {string} fileName - e.g. "lasagna-123.jpg"
+ * @param {string} sha - Current SHA of the file (strictly required for deletion)
+ * @returns {Promise<boolean>}
+ */
+export const deleteImageFile = async (config, fileName, sha) => {
+  const { owner, repo, branch = 'main', token } = config;
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/recipes/images/${fileName}`;
+
+  try {
+    let activeSha = sha;
+
+    // Fetch SHA if missing
+    if (!activeSha) {
+      const getRes = await fetch(`${url}?ref=${branch}`, { headers: getHeaders(token) });
+      if (getRes.status === 200) {
+        const fileData = await getRes.json();
+        activeSha = fileData.sha;
+      } else {
+        throw new Error('Could not retrieve image SHA to delete');
+      }
+    }
+
+    const body = {
+      message: `Clean Unused Image: ${fileName}`,
+      sha: activeSha,
+      branch
+    };
+
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        ...getHeaders(token),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (res.status === 200 || res.status === 204) {
+      return true;
+    } else {
+      const details = await res.json().catch(() => ({}));
+      throw new Error(details.message || `HTTP ${res.status}`);
+    }
+  } catch (err) {
+    console.error('[GitHub Service] Delete image file failed:', err);
+    throw err;
+  }
+};

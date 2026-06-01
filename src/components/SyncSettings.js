@@ -5,7 +5,13 @@
  */
 
 import { getState, updateState, showToast } from '../state-store';
-import { checkTokenValidity, autoDetectRepo, generateQuickConfigLink } from '../github-service';
+import {
+  checkTokenValidity,
+  autoDetectRepo,
+  generateQuickConfigLink,
+  fetchImageFiles,
+  deleteImageFile
+} from '../github-service';
 import { STAPLE_DENSITIES } from '../recipe-converter';
 
 /**
@@ -290,6 +296,42 @@ export const renderSyncSettings = (container) => {
             </div>
           </div>
         </div>
+        
+        <!-- Unused Image Cleaner (Housecleaning) -->
+        ${
+          isConnected
+            ? `
+        <div class="quick-link-box" style="margin-top: 24px;">
+          <h4><i class="fa-solid fa-broom" style="color: hsl(var(--accent-primary-hsl)); margin-right: 8px;"></i> Unused Image Cleaner</h4>
+          <p class="settings-help">
+            Scan your cookbook repository to identify and delete any uploaded image files (in <code>recipes/images/</code>) that are no longer referenced by any active recipe markdown. Deletions are securely committed to Git while preserving your historical versions!
+          </p>
+          
+          <div style="display: flex; gap: 12px; margin-top: 16px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary" id="btn-scan-images" style="width: auto; padding: 10px 18px;">
+              <i class="fa-solid fa-magnifying-glass-chart"></i> Scan for Unused Images
+            </button>
+            <span id="scan-status-text" style="font-size: 13px; color: hsl(var(--text-secondary-hsl)); font-weight: 500;"></span>
+          </div>
+
+          <!-- Unused images list container -->
+          <div id="unused-images-container" class="hidden" style="margin-top: 20px; border: 1px solid hsl(var(--border-color-hsl)); border-radius: var(--border-radius-sm); padding: 16px; background: hsl(var(--bg-secondary-hsl));">
+            <h5 style="margin: 0 0 12px 0; font-family: var(--font-serif); font-size: 16px; color: hsl(var(--text-primary-hsl)); display: flex; justify-content: space-between; align-items: center;">
+              Unused Images Found
+              <button type="button" class="btn btn-primary" id="btn-delete-all-unused" style="width: auto; padding: 6px 12px; font-size: 12px; background: #BE123C; border: none; justify-content: center;">
+                <i class="fa-solid fa-trash-can"></i> Delete All Unused
+              </button>
+            </h5>
+            
+            <div id="unused-images-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; max-height: 320px; overflow-y: auto; padding: 4px;">
+              <!-- Image cards dynamic output -->
+            </div>
+          </div>
+        </div>
+        `
+            : ''
+        }
+
       </div>
     </div>
   `;
@@ -683,6 +725,177 @@ export const renderSyncSettings = (container) => {
         } else {
           containerRef.classList.add('hidden');
           toggleIcon.innerHTML = '<i class="fa-solid fa-chevron-down"></i> Expand';
+        }
+      });
+    }
+
+    // --- HOUSE CLEANING: SCAN & DELETE UNUSED IMAGES ---
+    const scanBtn = document.getElementById('btn-scan-images');
+    if (scanBtn) {
+      scanBtn.addEventListener('click', async () => {
+        const gitConfig = getState().githubConfig;
+        if (!gitConfig || !gitConfig.token) {
+          showToast('Please connect your GitHub account to scan for unused images!', 'error');
+          return;
+        }
+
+        const statusText = document.getElementById('scan-status-text');
+        const unusedContainer = document.getElementById('unused-images-container');
+        const unusedList = document.getElementById('unused-images-list');
+
+        statusText.innerText = 'Scanning repository images...';
+        scanBtn.disabled = true;
+        unusedContainer.classList.add('hidden');
+        unusedList.innerHTML = '';
+
+        try {
+          // 1. Fetch all image files from recipes/images
+          const allImages = await fetchImageFiles(gitConfig);
+
+          if (allImages.length === 0) {
+            statusText.innerText = 'No images found in recipes/images/ directory.';
+            scanBtn.disabled = false;
+            return;
+          }
+
+          // 2. Scan all recipes in the state store for references
+          const { recipes } = getState();
+          const usedImageNames = new Set();
+
+          recipes.forEach((recipe) => {
+            // A. Scan the main frontmatter image
+            if (recipe.image) {
+              const cleanImage = recipe.image
+                .replace(/^\.\//, '')
+                .replace(/^recipes\//, '')
+                .replace(/^images\//, '');
+              const baseName = cleanImage.split('/').pop();
+              if (baseName) usedImageNames.add(baseName);
+            }
+
+            // B. Scan markdown body rawContent for other references
+            if (recipe.rawContent) {
+              const imgRegex = /!\[.*?\]\(([\w./-]+)\)/g;
+              let match;
+              while ((match = imgRegex.exec(recipe.rawContent)) !== null) {
+                const path = match[1];
+                const baseName = path.split('/').pop();
+                if (baseName) usedImageNames.add(baseName);
+              }
+            }
+          });
+
+          // 3. Filter list to only identify unused images
+          const unusedImages = allImages.filter((img) => !usedImageNames.has(img.name));
+
+          scanBtn.disabled = false;
+
+          if (unusedImages.length === 0) {
+            statusText.innerText = `Scan complete. All ${allImages.length} images are actively referenced by recipes!`;
+            return;
+          }
+
+          statusText.innerText = `Scan complete. Found ${unusedImages.length} unused image${unusedImages.length > 1 ? 's' : ''} out of ${allImages.length} total.`;
+
+          // 4. Render card list
+          unusedList.innerHTML = unusedImages
+            .map((f) => {
+              const sizeKb = Math.round(f.size / 1024);
+              const imageUrl = `https://raw.githubusercontent.com/${gitConfig.owner}/${gitConfig.repo}/${gitConfig.branch || 'main'}/recipes/images/${f.name}`;
+              return `
+                <div class="unused-image-card" data-filename="${f.name}" data-sha="${f.sha}" style="display: flex; flex-direction: column; background: hsl(var(--bg-primary-hsl)); border: 1px solid hsl(var(--border-color-hsl)); border-radius: var(--border-radius-sm); padding: 8px; position: relative;">
+                  <img src="${imageUrl}" alt="${f.name}" style="width: 100%; height: 90px; object-fit: cover; border-radius: 4px; background: #eee;" />
+                  <span style="font-size: 11px; font-weight: 600; color: hsl(var(--text-primary-hsl)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 6px; max-width: 100%;" title="${f.name}">${f.name}</span>
+                  <span style="font-size: 10px; color: hsl(var(--text-tertiary-hsl)); margin-bottom: 28px;">${sizeKb} KB</span>
+                  <button type="button" class="btn btn-secondary delete-single-image-btn" data-del-image="${f.name}" data-del-sha="${f.sha}" style="position: absolute; bottom: 8px; right: 8px; left: 8px; padding: 4px; font-size: 10px; background: rgba(190, 18, 60, 0.08); color: #BE123C; border: 1px solid rgba(190, 18, 60, 0.15); width: auto; justify-content: center;">
+                    <i class="fa-solid fa-trash-can"></i> Delete
+                  </button>
+                </div>
+              `;
+            })
+            .join('');
+
+          unusedContainer.classList.remove('hidden');
+
+          // 5. Attach Single Delete Buttons
+          document.querySelectorAll('.delete-single-image-btn').forEach((btn) => {
+            btn.addEventListener('click', async (e) => {
+              const fileName = e.currentTarget.getAttribute('data-del-image');
+              const sha = e.currentTarget.getAttribute('data-del-sha');
+
+              if (
+                !confirm(
+                  `Are you sure you want to delete the unused image "${fileName}" from your GitHub repository?`
+                )
+              ) {
+                return;
+              }
+
+              e.currentTarget.disabled = true;
+              e.currentTarget.innerHTML =
+                '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting...';
+
+              try {
+                await deleteImageFile(gitConfig, fileName, sha);
+                showToast(`Unused image "${fileName}" deleted successfully!`, 'success');
+                // Trigger fresh scan
+                scanBtn.click();
+              } catch (err) {
+                showToast(`Failed to delete image: ${err.message}`, 'error');
+                e.currentTarget.disabled = false;
+                e.currentTarget.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete';
+              }
+            });
+          });
+
+          // 6. Attach Bulk Delete Button
+          const deleteAllBtn = document.getElementById('btn-delete-all-unused');
+          if (deleteAllBtn) {
+            // Clone node to avoid duplicate event listeners
+            const newDeleteAllBtn = deleteAllBtn.cloneNode(true);
+            deleteAllBtn.parentNode.replaceChild(newDeleteAllBtn, deleteAllBtn);
+
+            newDeleteAllBtn.addEventListener('click', async () => {
+              if (
+                !confirm(
+                  `CAUTION: This will delete ALL ${unusedImages.length} unused images from your cookbook repository. This action cannot be undone. Do you want to proceed?`
+                )
+              ) {
+                return;
+              }
+
+              newDeleteAllBtn.disabled = true;
+              newDeleteAllBtn.innerHTML =
+                '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting All...';
+              statusText.innerText = 'Bulk deleting unused images...';
+
+              let deletedCount = 0;
+              let failedCount = 0;
+
+              for (const img of unusedImages) {
+                try {
+                  await deleteImageFile(gitConfig, img.name, img.sha);
+                  deletedCount++;
+                } catch {
+                  failedCount++;
+                }
+              }
+
+              if (deletedCount > 0) {
+                showToast(`Successfully deleted ${deletedCount} unused images!`, 'success');
+              }
+              if (failedCount > 0) {
+                showToast(`Failed to delete ${failedCount} images.`, 'error');
+              }
+
+              // Trigger fresh scan
+              scanBtn.click();
+            });
+          }
+        } catch (err) {
+          showToast(`Scan failed: ${err.message}`, 'error');
+          statusText.innerText = 'Scan failed.';
+          scanBtn.disabled = false;
         }
       });
     }
