@@ -15,7 +15,7 @@ const DURATION_REGEX =
  * @param {string} fractionStr
  * @returns {number|null}
  */
-const parseFraction = (fractionStr) => {
+export const parseFraction = (fractionStr) => {
   if (!fractionStr) return null;
   const trimmed = fractionStr.trim();
 

@@ -6,7 +6,7 @@
 
 import { getState, showToast } from '../state-store';
 import { commitRecipeFile, commitImageFile } from '../github-service';
-import { formatQuantity } from '../recipe-parser';
+import { formatQuantity, parseFraction } from '../recipe-parser';
 
 // Local template helper states to track rows during editing session
 let formState = {
@@ -52,7 +52,19 @@ const compileMarkdown = () => {
     ...formState.ingredients
       .filter((ing) => ing.name.trim().length > 0)
       .map((ing) => {
-        const qtyStr = ing.quantity ? `${formatQuantity(Number(ing.quantity))} ` : '';
+        let qtyStr = '';
+        if (ing.quantity !== undefined && ing.quantity !== null && ing.quantity !== '') {
+          if (typeof ing.quantity === 'number') {
+            qtyStr = `${formatQuantity(ing.quantity)} `;
+          } else {
+            const parsed = parseFraction(ing.quantity);
+            if (parsed !== null && !isNaN(parsed)) {
+              qtyStr = `${formatQuantity(parsed)} `;
+            } else {
+              qtyStr = `${ing.quantity.trim()} `;
+            }
+          }
+        }
         const unitStr = ing.unit ? `${ing.unit.trim()} ` : '';
         return `- ${qtyStr}${unitStr}${ing.name.trim()}`;
       }),
