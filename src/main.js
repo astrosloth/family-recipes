@@ -157,7 +157,9 @@ const parseRoute = () => {
   } else if (hash.startsWith('#cooking-mode')) {
     updateState({ view: 'cooking-mode' });
   } else if (hash.startsWith('#create')) {
-    updateState({ view: 'create' });
+    const params = new URLSearchParams(hash.split('?')[1]);
+    const id = params.get('id');
+    updateState({ view: 'create', activeRecipeId: id });
   } else if (hash.startsWith('#shopping-list')) {
     updateState({ view: 'shopping-list' });
   } else if (hash.startsWith('#settings')) {

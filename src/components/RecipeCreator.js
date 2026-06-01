@@ -22,6 +22,7 @@ let formState = {
   tags: [],
   ingredients: [{ quantity: 1, unit: 'cup', name: '' }],
   instructions: [{ step: 1, text: '' }],
+  notes: [],
   activeTab: 'edit', // 'edit' or 'preview'
   originalSha: null
 };
@@ -102,6 +103,17 @@ export const renderRecipeCreator = (container) => {
 
   // Detect if we are editing an existing recipe or creating a new one
   const isEditMode = hash.includes('?id=');
+
+  // If editing but recipes list hasn't loaded yet on direct reload, show beautiful loader
+  if (isEditMode && recipes.length === 0) {
+    container.innerHTML = `
+      <div class="container" style="padding: 40px 16px; text-align: center;">
+        <div class="spinner" style="margin: 0 auto 16px auto; width: 32px; height: 32px; border: 4px solid hsl(var(--border-color-hsl)); border-top: 4px solid hsl(var(--accent-primary-hsl)); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="color: hsl(var(--text-secondary-hsl)); font-family: var(--font-sans); font-size: 14px;">Loading recipe data...</p>
+      </div>
+    `;
+    return;
+  }
 
   // Synchronize formState once when transitioning into Edit Mode
   if (isEditMode && activeRecipeId && formState.id !== activeRecipeId) {
