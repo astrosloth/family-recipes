@@ -36,7 +36,13 @@ const compileMarkdown = (recipe) => {
     ''
   ].join('\n');
 
-  return `${yaml}\n${ingredientsText}\n${instructionsText}`;
+  const activeNotes = recipe.notes ? recipe.notes.filter((n) => n && n.trim().length > 0) : [];
+  const notesText =
+    activeNotes.length > 0
+      ? ['## Notes', ...activeNotes.map((n) => `- ${n.trim()}`), ''].join('\n')
+      : '';
+
+  return `${yaml}\n${ingredientsText}\n${instructionsText}${notesText ? `\n${notesText}` : ''}`;
 };
 
 // --- API IO WRAPPERS ---
@@ -144,7 +150,12 @@ const handleScrapeResponse = (response) => {
   document.getElementById('prev-meta-domain').innerText = `Source: ${scrapedRecipe.sourceDomain}`;
   document.getElementById('stat-ingredients').innerText =
     `${scrapedRecipe.ingredients.length} ingredients`;
-  document.getElementById('stat-steps').innerText = `${scrapedRecipe.instructions.length} steps`;
+  const notesCountText =
+    scrapedRecipe.notes && scrapedRecipe.notes.length > 0
+      ? `, ${scrapedRecipe.notes.length} notes`
+      : '';
+  document.getElementById('stat-steps').innerText =
+    `${scrapedRecipe.instructions.length} steps${notesCountText}`;
 
   // Pre-fill editable input details
   document.getElementById('clip-title').value = scrapedRecipe.title;

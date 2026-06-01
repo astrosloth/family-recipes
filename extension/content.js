@@ -106,6 +106,106 @@ const normalizeInstructions = (instructionsVal) => {
 };
 
 /**
+ * Helper to scrape list items after a header
+ * @param {HTMLElement} headerEl
+ * @returns {array}
+ */
+const scrapeListAfterElement = (headerEl) => {
+  if (!headerEl) return [];
+  const items = [];
+  let current = headerEl;
+
+  // Look up to 4 sibling elements
+  for (let i = 0; i < 4; i++) {
+    current = current.nextElementSibling;
+    if (!current) break;
+
+    // If it's a UL or OL, scrape its children
+    if (current.tagName === 'UL' || current.tagName === 'OL') {
+      const lis = current.querySelectorAll('li');
+      lis.forEach((li) => {
+        const txt = li.innerText.trim();
+        if (txt.length > 0) items.push(txt);
+      });
+      break;
+    }
+
+    // If it's another heading, stop
+    if (current.tagName.startsWith('H')) {
+      break;
+    }
+
+    // If it contains list items, parse them
+    const lis = current.querySelectorAll('li');
+    if (lis.length > 0) {
+      lis.forEach((li) => {
+        const txt = li.innerText.trim();
+        if (txt.length > 0) items.push(txt);
+      });
+      break;
+    }
+
+    // Fallback: If it's a paragraph or div with multiple lines
+    if (current.tagName === 'P' || current.tagName === 'DIV') {
+      const txt = current.innerText.trim();
+      if (txt.length > 0 && txt.length < 250 && (current.tagName === 'P' || txt.includes('\n'))) {
+        if (txt.includes('\n')) {
+          txt.split('\n').forEach((line) => {
+            const l = line.trim();
+            if (l.length > 0) items.push(l);
+          });
+        } else {
+          items.push(txt);
+        }
+      }
+    }
+  }
+  return items;
+};
+
+/**
+ * Searches the DOM for a notes/tips header and extracts sibling list items.
+ * @returns {array}
+ */
+const scrapeNotesFromDOM = () => {
+  try {
+    const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, div, span'));
+    let notesHeader = null;
+
+    for (const el of headings) {
+      const text = el.innerText.trim().toLowerCase();
+      if (
+        (text === 'notes' ||
+          text === 'recipe notes' ||
+          text === 'tips' ||
+          text === 'cooking tips') &&
+        el.tagName.startsWith('H')
+      ) {
+        notesHeader = el;
+        break;
+      }
+    }
+
+    if (!notesHeader) {
+      for (const el of headings) {
+        const text = el.innerText.trim().toLowerCase();
+        if (text === 'notes' || text === 'recipe notes' || text === 'cooking tips') {
+          notesHeader = el;
+          break;
+        }
+      }
+    }
+
+    if (notesHeader) {
+      return scrapeListAfterElement(notesHeader);
+    }
+  } catch (err) {
+    console.error('[Recipe Scraper] Scanning DOM for notes failed:', err);
+  }
+  return [];
+};
+
+/**
  * Fallback DOM Scraper that extracts recipe details based on standard DOM conventions and heuristics.
  * @returns {object|null} - Compiled fallback recipe details
  */
@@ -203,64 +303,6 @@ const scrapeDOMFallback = () => {
       }
     }
 
-    // Helper to scrape list items after a header
-    const scrapeListAfterElement = (headerEl) => {
-      if (!headerEl) return [];
-      const items = [];
-      let current = headerEl;
-
-      // Look up to 4 sibling elements
-      for (let i = 0; i < 4; i++) {
-        current = current.nextElementSibling;
-        if (!current) break;
-
-        // If it's a UL or OL, scrape its children
-        if (current.tagName === 'UL' || current.tagName === 'OL') {
-          const lis = current.querySelectorAll('li');
-          lis.forEach((li) => {
-            const txt = li.innerText.trim();
-            if (txt.length > 0) items.push(txt);
-          });
-          break;
-        }
-
-        // If it's another heading, stop
-        if (current.tagName.startsWith('H')) {
-          break;
-        }
-
-        // If it contains list items, parse them
-        const lis = current.querySelectorAll('li');
-        if (lis.length > 0) {
-          lis.forEach((li) => {
-            const txt = li.innerText.trim();
-            if (txt.length > 0) items.push(txt);
-          });
-          break;
-        }
-
-        // Fallback: If it's a paragraph or div with multiple lines
-        if (current.tagName === 'P' || current.tagName === 'DIV') {
-          const txt = current.innerText.trim();
-          if (
-            txt.length > 0 &&
-            txt.length < 250 &&
-            (current.tagName === 'P' || txt.includes('\n'))
-          ) {
-            if (txt.includes('\n')) {
-              txt.split('\n').forEach((line) => {
-                const l = line.trim();
-                if (l.length > 0) items.push(l);
-              });
-            } else {
-              items.push(txt);
-            }
-          }
-        }
-      }
-      return items;
-    };
-
     if (ingredientsHeader) {
       recipe.ingredients = scrapeListAfterElement(ingredientsHeader);
     }
@@ -346,6 +388,8 @@ const scrapeDOMFallback = () => {
       recipe.cookTime = cookMatch[1].trim();
     }
 
+    recipe.notes = scrapeNotesFromDOM();
+
     return recipe;
   } catch (err) {
     console.error('[Recipe Scraper] Fallback DOM scraper failed:', err);
@@ -402,6 +446,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         ? schema.recipeIngredient.map((i) => i.trim())
         : [],
       instructions: normalizeInstructions(schema.recipeInstructions),
+      notes: scrapeNotesFromDOM(),
       sourceDomain: window.location.hostname,
       isFallbackScrape: false
     };
