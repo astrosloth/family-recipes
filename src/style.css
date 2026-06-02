@@ -1034,6 +1034,9 @@ input:checked + .slider:before {
   flex-direction: column;
   animation: slideUp var(--transition-normal) forwards;
 }
+.cooking-mode-overlay.no-animation {
+  animation: none !important;
+}
 
 .cooking-header {
   padding: 20px 40px;

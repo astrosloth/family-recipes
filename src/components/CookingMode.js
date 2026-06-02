@@ -40,9 +40,12 @@ export const renderCookingMode = (appShellContainer) => {
     recipe.instructions.find((s) => s.step === activeCookingStep) || recipe.instructions[0];
   const progressPercent = Math.round(((activeCookingStep - 1) / totalSteps) * 100);
 
+  const isAlreadyMounted = window.cookingModeMounted;
+  window.cookingModeMounted = true;
+
   // Overwrite the entire body/shell viewport to isolate focus
   appShellContainer.innerHTML = `
-    <div class="cooking-mode-overlay">
+    <div class="cooking-mode-overlay ${isAlreadyMounted ? 'no-animation' : ''}">
       <!-- Header -->
       <header class="cooking-header">
         <h2 class="cooking-title"><i class="fa-solid fa-kitchen-set" style="color: hsl(var(--accent-primary-hsl)); margin-right: 12px;"></i> Cooking: ${recipe.title}</h2>

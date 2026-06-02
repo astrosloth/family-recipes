@@ -311,6 +311,10 @@ const renderApp = () => {
   const mainContent = document.getElementById('app-main-content');
 
   try {
+    if (state.view !== 'cooking-mode') {
+      window.cookingModeMounted = false;
+    }
+
     if (state.view === 'home') {
       renderDashboard(mainContent);
     } else if (state.view === 'recipe') {
