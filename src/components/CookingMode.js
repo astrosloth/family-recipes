@@ -114,7 +114,7 @@ export const renderCookingMode = (appShellContainer) => {
         stepContainer.querySelectorAll('.btn-start-step-timer').forEach((btn) => {
           btn.addEventListener('click', (e) => {
             const mins = Number(e.currentTarget.getAttribute('data-timer-mins'));
-            startCookingTimer(mins, activeCookingStep);
+            startCookingTimer(mins, getState().activeCookingStep);
           });
         });
       }
@@ -325,6 +325,7 @@ export const renderCookingMode = (appShellContainer) => {
     item.addEventListener('click', (e) => {
       const idx = e.currentTarget.getAttribute('data-prep-idx');
       const itemKey = `${recipe.id}-ing-${idx}`;
+      const { cookingPrepped } = getState();
       const isChecked = cookingPrepped.includes(itemKey);
 
       const newPrepped = isChecked
@@ -337,12 +338,14 @@ export const renderCookingMode = (appShellContainer) => {
 
   // Step Navigation Event Handlers
   document.getElementById('btn-cook-prev').addEventListener('click', () => {
+    const { activeCookingStep } = getState();
     if (activeCookingStep > 1) {
       updateState({ activeCookingStep: activeCookingStep - 1 });
     }
   });
 
   document.getElementById('btn-cook-next').addEventListener('click', () => {
+    const { activeCookingStep } = getState();
     if (activeCookingStep < totalSteps) {
       updateState({ activeCookingStep: activeCookingStep + 1 });
     } else {
@@ -357,6 +360,7 @@ export const renderCookingMode = (appShellContainer) => {
     btn.addEventListener('click', (e) => {
       const mins = Number(e.currentTarget.getAttribute('data-timer-mins'));
       // Start counting!
+      const { activeCookingStep } = getState();
       startCookingTimer(mins, activeCookingStep);
     });
   });
