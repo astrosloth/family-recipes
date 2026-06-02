@@ -1782,6 +1782,71 @@ input:checked + .slider:before {
       80px + env(safe-area-inset-bottom, 0px)
     ); /* Lift toast notifications above the tab bar */
   }
+
+  /* --- RECIPE CREATOR MOBILE SPACING AND SPATIAL REFINEMENT --- */
+  .creator-pane {
+    padding: 16px;
+    border-radius: var(--border-radius-md);
+  }
+
+  .creator-title {
+    font-size: 22px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+  }
+
+  .form-group {
+    margin-bottom: 12px;
+    gap: 6px;
+  }
+
+  .form-row {
+    gap: 12px;
+  }
+
+  .form-input {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .dynamic-list-builder {
+    padding: 12px;
+    margin-bottom: 16px;
+    border-radius: var(--border-radius-sm);
+  }
+
+  .list-builder-header {
+    margin-bottom: 12px;
+  }
+
+  .list-builder-title {
+    font-size: 14px;
+  }
+
+  .builder-item-row {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .builder-item-row .form-input {
+    padding: 8px 10px;
+    font-size: 13.5px;
+  }
+
+  .remove-row-btn {
+    font-size: 14px;
+  }
+
+  .tags-input-container {
+    min-height: 40px;
+    padding: 6px 10px;
+    gap: 6px;
+  }
+
+  .tag-pill {
+    padding: 2px 8px;
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 480px) {
