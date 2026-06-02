@@ -299,17 +299,24 @@ const renderApp = () => {
   // Check if only the timer secondsRemaining changed
   let onlyTimerTicked = false;
   if (lastState && lastState.view === state.view && state.view !== 'cooking-mode') {
-    onlyTimerTicked =
-      lastState.activeRecipeId === state.activeRecipeId &&
-      lastState.searchQuery === state.searchQuery &&
-      lastState.selectedCategory === state.selectedCategory &&
-      JSON.stringify(lastState.selectedTags) === JSON.stringify(state.selectedTags) &&
-      JSON.stringify(lastState.favorites) === JSON.stringify(state.favorites) &&
-      JSON.stringify(lastState.shoppingList) === JSON.stringify(state.shoppingList) &&
-      JSON.stringify(lastState.servingsScale) === JSON.stringify(state.servingsScale) &&
-      lastState.gramsMode === state.gramsMode &&
-      lastState.activeCookingStep === state.activeCookingStep &&
-      JSON.stringify(lastState.cookingPrepped) === JSON.stringify(state.cookingPrepped);
+    const mainStateChanged =
+      lastState.loading !== state.loading ||
+      lastState.recipes !== state.recipes ||
+      lastState.activeRecipeId !== state.activeRecipeId ||
+      lastState.searchQuery !== state.searchQuery ||
+      lastState.selectedCategory !== state.selectedCategory ||
+      lastState.gramsMode !== state.gramsMode ||
+      lastState.activeCookingStep !== state.activeCookingStep ||
+      lastState.appTitle !== state.appTitle ||
+      lastState.accentColor !== state.accentColor ||
+      JSON.stringify(lastState.selectedTags) !== JSON.stringify(state.selectedTags) ||
+      JSON.stringify(lastState.favorites) !== JSON.stringify(state.favorites) ||
+      JSON.stringify(lastState.shoppingList) !== JSON.stringify(state.shoppingList) ||
+      JSON.stringify(lastState.servingsScale) !== JSON.stringify(state.servingsScale) ||
+      JSON.stringify(lastState.cookingPrepped) !== JSON.stringify(state.cookingPrepped) ||
+      JSON.stringify(lastState.customDensities) !== JSON.stringify(state.customDensities);
+
+    onlyTimerTicked = !mainStateChanged;
   }
 
   // Update lastState reference
@@ -319,7 +326,8 @@ const renderApp = () => {
     favorites: [...state.favorites],
     shoppingList: [...state.shoppingList],
     servingsScale: { ...state.servingsScale },
-    cookingPrepped: [...state.cookingPrepped]
+    cookingPrepped: [...state.cookingPrepped],
+    customDensities: { ...state.customDensities }
   };
 
   if (onlyTimerTicked) {
