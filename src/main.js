@@ -63,7 +63,6 @@ const loadConfiguration = async (activeConfig) => {
         updateState({
           appTitle: configObj.appTitle || 'Our Family Recipes',
           accentColor: configObj.accentColor || '#D97706',
-          defaultRepo: configObj.defaultRepo || null,
           customDensities: configObj.customDensities || getState().customDensities || {}
         });
       }
@@ -83,21 +82,17 @@ export const initializeRecipes = async () => {
   const sharedConfig = parseQuickConfigLink((msg, type) => {
     import('./state-store').then((m) => m.showToast(msg, type));
   });
-
-  const currentConfig = sharedConfig || getState().githubConfig;
+  const activeConfig = sharedConfig || getState().githubConfig;
 
   if (sharedConfig) {
     updateState({ githubConfig: sharedConfig });
   }
 
-  // Synchronize app title, accent colors, and default repository config
-  await loadConfiguration(currentConfig);
+  // Synchronize app title and accent colors from repository config
+  await loadConfiguration(activeConfig);
 
-  const state = getState();
-  const activeConfig = currentConfig || state.defaultRepo;
-
-  if (activeConfig && (activeConfig.token || activeConfig.owner)) {
-    // Live GitHub Sync Mode (Supports public default repository fallbacks without tokens)
+  if (activeConfig && activeConfig.token) {
+    // Live GitHub Sync Mode
     try {
       import('./state-store').then((m) =>
         m.showToast('Connecting to GitHub repository...', 'info')
