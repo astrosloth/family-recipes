@@ -6,18 +6,61 @@
 // Regular expressions for parsing
 const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
 const INGREDIENT_LINE_REGEX =
-  /^\s*-\s+((?:\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?)(?:\s*-\s*|\s+(?:to|or)\s+)(?:\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?)|(?:\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?)|-)?\s*(cup|cups|tbsp|tbsps|tsp|tsps|g|grams|kg|oz|ounces|lb|lbs|pounds|clove|cloves|can|cans|pinch|pinches|ml|l|slice|slices)?\s+(.+)$/i;
+  /^\s*-\s+((?:\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?)\+?(?:\s*-\s*|\s+(?:to|or)\s+)(?:\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?)\+?|(?:\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?)\+?|-)?\s*(cup|cups|tbsp|tbsps|tsp|tsps|g|grams|kg|oz|ounces|lb|lbs|pounds|clove|cloves|can|cans|pinch|pinches|ml|l|slice|slices)?\s+(.+)$/i;
 const DURATION_REGEX =
-  /\b(\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?)\s*(mins?|minutes?|hours?|hrs?)\b/gi;
+  /\b(\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:\.\d+)?)\+?\s*(mins?|minutes?|hours?|hrs?)\b/gi;
+
+const VULGAR_FRACTIONS = {
+  '½': '1/2',
+  '⅓': '1/3',
+  '⅔': '2/3',
+  '¼': '1/4',
+  '¾': '3/4',
+  '⅕': '1/5',
+  '⅖': '2/5',
+  '⅗': '3/5',
+  '⅘': '4/5',
+  '⅙': '1/6',
+  '⅚': '5/6',
+  '⅛': '1/8',
+  '⅜': '3/8',
+  '⅝': '5/8',
+  '⅞': '7/8'
+};
 
 /**
- * Parses fractional strings (e.g. "1 1/2", "3/4") into decimal numbers.
+ * Normalizes unicode vulgar fraction characters into standard slash fractions.
+ * If a vulgar fraction is adjacent to a digit (e.g. 1½), a space is inserted.
+ * @param {string} str
+ * @returns {string}
+ */
+export const normalizeVulgarFractions = (str) => {
+  if (!str) return '';
+  return str.replace(/[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/g, (char, index, fullStr) => {
+    const prevChar = index > 0 ? fullStr[index - 1] : '';
+    const replacement = VULGAR_FRACTIONS[char] || char;
+    if (/\d/.test(prevChar)) {
+      return ' ' + replacement;
+    }
+    return replacement;
+  });
+};
+
+/**
+ * Parses fractional strings (e.g. "1 1/2", "3/4", "½") into decimal numbers.
  * @param {string} fractionStr
  * @returns {number|null}
  */
 export const parseFraction = (fractionStr) => {
   if (!fractionStr) return null;
-  const trimmed = fractionStr.trim();
+
+  const normalized = normalizeVulgarFractions(fractionStr);
+  let trimmed = normalized.trim();
+
+  // Strip trailing '+' if present
+  if (trimmed.endsWith('+')) {
+    trimmed = trimmed.slice(0, -1).trim();
+  }
 
   // If the string contains range indicators or non-numeric characters, reject it as a clean fraction
   if (/[^0-9/.\s]/.test(trimmed)) {
@@ -174,7 +217,8 @@ const parseIngredientsSection = (sectionText) =>
     .map((line) => line.trim())
     .filter((line) => line.startsWith('-'))
     .map((line) => {
-      const match = line.match(INGREDIENT_LINE_REGEX);
+      const normalizedLine = normalizeVulgarFractions(line);
+      const match = normalizedLine.match(INGREDIENT_LINE_REGEX);
       if (!match) {
         return {
           originalText: line.replace(/^\s*-\s+/, ''),
@@ -211,9 +255,10 @@ const parseInstructionsSection = (sectionText) =>
     .filter((line) => /^\d+\.\s+/.test(line))
     .map((line, index) => {
       const stepText = line.replace(/^\d+\.\s+/, '');
+      const normalizedStepText = normalizeVulgarFractions(stepText);
 
       // Extract cooking timer details dynamically
-      const durationMatches = Array.from(stepText.matchAll(DURATION_REGEX));
+      const durationMatches = Array.from(normalizedStepText.matchAll(DURATION_REGEX));
       const timers = durationMatches.map((m) => {
         const [_, qtyStr, unitStr] = m;
         const rawMinutes = parseFraction(qtyStr);

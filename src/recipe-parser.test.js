@@ -28,6 +28,19 @@ describe('recipe-parser utilities', () => {
       expect(parseFraction('2 3/4')).toBe(2.75);
     });
 
+    it('should parse unicode vulgar fractions', () => {
+      expect(parseFraction('½')).toBe(0.5);
+      expect(parseFraction('¼')).toBe(0.25);
+      expect(parseFraction('1½')).toBe(1.5);
+      expect(parseFraction('2 ¼')).toBe(2.25);
+    });
+
+    it('should parse quantities with trailing plus signs', () => {
+      expect(parseFraction('1/2+')).toBe(0.5);
+      expect(parseFraction('1 1/2+')).toBe(1.5);
+      expect(parseFraction('½+')).toBe(0.5);
+    });
+
     it('should return null for range quantities or custom strings', () => {
       expect(parseFraction('2-3')).toBeNull();
       expect(parseFraction('1/2-3/4')).toBeNull();
@@ -158,6 +171,60 @@ tags: ["sweet", "baked"]
       const parsed = parseRecipeMarkdown(sampleMarkdown, 'test-recipe.md');
       expect(parsed.notes.length).toBe(1);
       expect(parsed.notes[0]).toBe('Serve warm with vanilla ice cream.');
+    });
+
+    it('should parse unicode vulgar fractions and plus signs in ingredients and instructions', () => {
+      const correctMd = `---
+title: "Vulgar Fraction Recipe"
+prepTime: "10 mins"
+cookTime: "15 mins"
+servings: 4
+categories: ["Breakfast"]
+---
+
+## Ingredients
+- ½ tsp cayenne
+- 1½ tsp salt
+- ¼ cup onion
+- ½+ tsp pepper
+
+## Instructions
+1. Bake for ½ hour.
+2. Simmer for 1½ minutes.
+`;
+      const parsed = parseRecipeMarkdown(correctMd, 'vulgar-fraction.md');
+      expect(parsed.success).toBe(true);
+
+      const ing = parsed.ingredients;
+      expect(ing.length).toBe(4);
+
+      expect(ing[0].quantity).toBe(0.5);
+      expect(ing[0].rawQuantity).toBe('1/2');
+      expect(ing[0].unit).toBe('tsp');
+      expect(ing[0].name).toBe('cayenne');
+      expect(ing[0].scalable).toBe(true);
+
+      expect(ing[1].quantity).toBe(1.5);
+      expect(ing[1].rawQuantity).toBe('1 1/2');
+      expect(ing[1].unit).toBe('tsp');
+      expect(ing[1].name).toBe('salt');
+      expect(ing[1].scalable).toBe(true);
+
+      expect(ing[2].quantity).toBe(0.25);
+      expect(ing[2].rawQuantity).toBe('1/4');
+      expect(ing[2].unit).toBe('cup');
+      expect(ing[2].name).toBe('onion');
+      expect(ing[2].scalable).toBe(true);
+
+      expect(ing[3].quantity).toBe(0.5);
+      expect(ing[3].rawQuantity).toBe('1/2+');
+      expect(ing[3].unit).toBe('tsp');
+      expect(ing[3].name).toBe('pepper');
+      expect(ing[3].scalable).toBe(true);
+
+      expect(parsed.instructions.length).toBe(2);
+      expect(parsed.instructions[0].timers[0].minutes).toBe(30); // 1/2 hour = 30 mins
+      expect(parsed.instructions[1].timers[0].minutes).toBe(2); // 1 1/2 minutes = 1.5 -> Math.round is 2
     });
   });
 });
