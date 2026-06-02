@@ -145,32 +145,38 @@ export const renderCookingMode = (appShellContainer) => {
     // 3. Update the floating timer panel
     let timerPane = overlay.querySelector('.cooking-timer-pane');
     if (timer) {
-      const timerHtml = `
-        <i class="fa-solid fa-stopwatch timer-icon-spinning"></i>
-        <div style="display: flex; flex-direction: column;">
-          <span style="font-size: 10px; text-transform: uppercase; color: rgba(255,255,255,0.4); font-weight:600;">Timer: Step ${timer.step}</span>
-          <span class="timer-time-display">
-            ${Math.floor(timer.secondsRemaining / 60)}:${(timer.secondsRemaining % 60).toString().padStart(2, '0')}
-          </span>
-        </div>
-        <div class="timer-actions">
-          <button id="btn-cancel-timer" title="Cancel Countdown"><i class="fa-solid fa-trash"></i></button>
-        </div>
-      `;
-
       if (timerPane) {
-        timerPane.innerHTML = timerHtml;
+        const timeDisplay = timerPane.querySelector('.timer-time-display');
+        if (timeDisplay) {
+          timeDisplay.textContent = `${Math.floor(timer.secondsRemaining / 60)}:${(timer.secondsRemaining % 60).toString().padStart(2, '0')}`;
+        }
+        const stepDisplay = timerPane.querySelector('span[style*="font-size: 10px"]');
+        if (stepDisplay) {
+          stepDisplay.textContent = `Timer: Step ${timer.step}`;
+        }
       } else {
+        const timerHtml = `
+          <i class="fa-solid fa-stopwatch timer-icon-spinning"></i>
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 10px; text-transform: uppercase; color: rgba(255,255,255,0.4); font-weight:600;">Timer: Step ${timer.step}</span>
+            <span class="timer-time-display">
+              ${Math.floor(timer.secondsRemaining / 60)}:${(timer.secondsRemaining % 60).toString().padStart(2, '0')}
+            </span>
+          </div>
+          <div class="timer-actions">
+            <button id="btn-cancel-timer" title="Cancel Countdown"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        `;
         timerPane = document.createElement('div');
         timerPane.className = 'cooking-timer-pane';
         timerPane.innerHTML = timerHtml;
         overlay.querySelector('.cooking-focus-column').appendChild(timerPane);
-      }
 
-      // Re-bind cancel click event
-      const cancelBtn = timerPane.querySelector('#btn-cancel-timer');
-      if (cancelBtn) {
-        cancelBtn.addEventListener('click', stopCookingTimer);
+        // Bind cancel click event only on element creation
+        const cancelBtn = timerPane.querySelector('#btn-cancel-timer');
+        if (cancelBtn) {
+          cancelBtn.addEventListener('click', stopCookingTimer);
+        }
       }
     } else if (timerPane) {
       timerPane.remove();

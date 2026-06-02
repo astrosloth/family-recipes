@@ -272,11 +272,12 @@ const updateGlobalTimerPane = (timer) => {
       timerPane.className = 'global-timer-pane';
       timerPane.innerHTML = timerHtml;
       document.body.appendChild(timerPane);
-    }
 
-    const cancelBtn = timerPane.querySelector('#btn-global-cancel-timer');
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', stopCookingTimer);
+      // Bind cancel click event only on element creation
+      const cancelBtn = timerPane.querySelector('#btn-global-cancel-timer');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', stopCookingTimer);
+      }
     }
   } else if (timerPane) {
     timerPane.remove();
