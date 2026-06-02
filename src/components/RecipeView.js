@@ -4,7 +4,7 @@
  * inline timer setups, SEO JSON-LD injections, and authenticated deletes.
  */
 
-import { getState, updateState, showToast } from '../state-store';
+import { getState, updateState, showToast, startCookingTimer } from '../state-store';
 import { formatIngredientQuantity } from '../recipe-parser';
 import { scaleAndConvertIngredient } from '../recipe-converter';
 import { deleteRecipeFile } from '../github-service';
@@ -377,8 +377,8 @@ export const renderRecipeView = (container) => {
       const mins = Number(el.getAttribute('data-timer-mins'));
       const step = Number(el.getAttribute('data-timer-step'));
 
-      // Import the dynamic main app timer starter dynamically
-      import('../state-store').then((m) => m.startCookingTimer(mins, step));
+      // Start counting!
+      startCookingTimer(mins, step);
     });
   });
 

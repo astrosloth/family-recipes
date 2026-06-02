@@ -233,6 +233,25 @@ const renderApp = () => {
   if (!appContainer) return;
 
   const state = getState();
+
+  if (state.view !== 'cooking-mode') {
+    window.cookingModeMounted = false;
+  }
+
+  if (state.view === 'cooking-mode') {
+    const hasOverlay = appContainer.querySelector('.cooking-mode-overlay');
+    if (!hasOverlay) {
+      appContainer.innerHTML = '';
+    }
+    try {
+      renderCookingMode(appContainer);
+    } catch (err) {
+      console.error('[App Shell] Cooking Mode rendering crashed:', err);
+      renderErrorBoundary(appContainer, err);
+    }
+    return;
+  }
+
   const savedTheme = localStorage.getItem('family-recipes-theme') || 'system';
 
   const themeIcon =
@@ -311,17 +330,10 @@ const renderApp = () => {
   const mainContent = document.getElementById('app-main-content');
 
   try {
-    if (state.view !== 'cooking-mode') {
-      window.cookingModeMounted = false;
-    }
-
     if (state.view === 'home') {
       renderDashboard(mainContent);
     } else if (state.view === 'recipe') {
       renderRecipeView(mainContent);
-    } else if (state.view === 'cooking-mode') {
-      // Cooking Mode is rendered as a standalone overlay to isolate focus
-      renderCookingMode(appContainer);
     } else if (state.view === 'create') {
       renderRecipeCreator(mainContent);
     } else if (state.view === 'shopping-list') {
@@ -331,11 +343,7 @@ const renderApp = () => {
     }
   } catch (err) {
     console.error('[App Shell] Visual Component rendering crashed:', err);
-    if (state.view === 'cooking-mode') {
-      renderErrorBoundary(appContainer, err);
-    } else {
-      renderErrorBoundary(mainContent, err);
-    }
+    renderErrorBoundary(mainContent, err);
   }
 };
 
