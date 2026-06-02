@@ -6,7 +6,13 @@
 
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import './style.css';
-import { getState, updateState, subscribeState, toggleTheme } from './state-store';
+import {
+  getState,
+  updateState,
+  subscribeState,
+  toggleTheme,
+  stopCookingTimer
+} from './state-store';
 import { parseRecipeMarkdown } from './recipe-parser';
 import { fetchRecipeFiles, fetchRawFile, parseQuickConfigLink } from './github-service';
 
@@ -227,6 +233,58 @@ const renderErrorBoundary = (container, error) => {
   }
 };
 
+// --- GLOBAL TIMER WIDGET DISPLAY CONTROL ---
+const updateGlobalTimerPane = (timer) => {
+  const state = getState();
+  let timerPane = document.getElementById('global-timer-widget');
+
+  if (state.view === 'cooking-mode') {
+    if (timerPane) timerPane.remove();
+    return;
+  }
+
+  if (timer) {
+    const timerHtml = `
+      <i class="fa-solid fa-stopwatch timer-icon-spinning"></i>
+      <div style="display: flex; flex-direction: column;">
+        <span class="global-timer-label">Timer: Step ${timer.step}</span>
+        <span class="timer-time-display">
+          ${Math.floor(timer.secondsRemaining / 60)}:${(timer.secondsRemaining % 60).toString().padStart(2, '0')}
+        </span>
+      </div>
+      <button id="btn-global-cancel-timer" class="btn-global-cancel-timer" title="Cancel Countdown">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    `;
+
+    if (timerPane) {
+      const timeDisplay = timerPane.querySelector('.timer-time-display');
+      if (timeDisplay) {
+        timeDisplay.textContent = `${Math.floor(timer.secondsRemaining / 60)}:${(timer.secondsRemaining % 60).toString().padStart(2, '0')}`;
+      }
+      const labelDisplay = timerPane.querySelector('.global-timer-label');
+      if (labelDisplay) {
+        labelDisplay.textContent = `Timer: Step ${timer.step}`;
+      }
+    } else {
+      timerPane = document.createElement('div');
+      timerPane.id = 'global-timer-widget';
+      timerPane.className = 'global-timer-pane';
+      timerPane.innerHTML = timerHtml;
+      document.body.appendChild(timerPane);
+    }
+
+    const cancelBtn = timerPane.querySelector('#btn-global-cancel-timer');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', stopCookingTimer);
+    }
+  } else if (timerPane) {
+    timerPane.remove();
+  }
+};
+
+let lastState = null;
+
 // --- DECLARATIVE LAYOUT ASSEMBLER ---
 const renderApp = () => {
   const appContainer = document.getElementById('app');
@@ -236,6 +294,37 @@ const renderApp = () => {
 
   if (state.view !== 'cooking-mode') {
     window.cookingModeMounted = false;
+  }
+
+  // Check if only the timer secondsRemaining changed
+  let onlyTimerTicked = false;
+  if (lastState && lastState.view === state.view && state.view !== 'cooking-mode') {
+    onlyTimerTicked =
+      lastState.activeRecipeId === state.activeRecipeId &&
+      lastState.searchQuery === state.searchQuery &&
+      lastState.selectedCategory === state.selectedCategory &&
+      JSON.stringify(lastState.selectedTags) === JSON.stringify(state.selectedTags) &&
+      JSON.stringify(lastState.favorites) === JSON.stringify(state.favorites) &&
+      JSON.stringify(lastState.shoppingList) === JSON.stringify(state.shoppingList) &&
+      JSON.stringify(lastState.servingsScale) === JSON.stringify(state.servingsScale) &&
+      lastState.gramsMode === state.gramsMode &&
+      lastState.activeCookingStep === state.activeCookingStep &&
+      JSON.stringify(lastState.cookingPrepped) === JSON.stringify(state.cookingPrepped);
+  }
+
+  // Update lastState reference
+  lastState = {
+    ...state,
+    selectedTags: [...state.selectedTags],
+    favorites: [...state.favorites],
+    shoppingList: [...state.shoppingList],
+    servingsScale: { ...state.servingsScale },
+    cookingPrepped: [...state.cookingPrepped]
+  };
+
+  if (onlyTimerTicked) {
+    updateGlobalTimerPane(state.timer);
+    return;
   }
 
   if (state.view === 'cooking-mode') {
@@ -345,6 +434,9 @@ const renderApp = () => {
     console.error('[App Shell] Visual Component rendering crashed:', err);
     renderErrorBoundary(mainContent, err);
   }
+
+  // Update global ticking timer widget status
+  updateGlobalTimerPane(state.timer);
 };
 
 // --- INITIALIZATION ---

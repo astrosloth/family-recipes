@@ -1206,6 +1206,60 @@ input:checked + .slider:before {
   background: hsl(var(--accent-primary-hsl));
 }
 
+/* Global Timer Box */
+.global-timer-pane {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid hsl(var(--border-color-hsl));
+  padding: 12px 20px;
+  border-radius: var(--border-radius-md);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--color-shadow);
+  z-index: 1000;
+  animation: scaleIn var(--transition-fast);
+}
+.global-timer-pane .timer-time-display {
+  color: var(--color-text-dark);
+  font-size: 18px;
+  font-weight: 700;
+  font-family: monospace;
+}
+.global-timer-pane .global-timer-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.global-timer-pane .btn-global-cancel-timer {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: color var(--transition-fast);
+}
+.global-timer-pane .btn-global-cancel-timer:hover {
+  color: var(--color-error);
+}
+
+@media (max-width: 768px) {
+  .global-timer-pane {
+    bottom: 80px;
+    right: 16px;
+  }
+}
+
 /* --- RECIPE CREATOR / EDITOR VIEW --- */
 .creator-pane {
   max-width: 900px;
