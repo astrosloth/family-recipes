@@ -20,6 +20,7 @@ let state = {
   servingsScale: {},
   appTitle: localStorage.getItem('family-recipes-app-title') || 'Our Family Recipes',
   accentColor: localStorage.getItem('family-recipes-accent-color') || '#D97706',
+  defaultRepo: null,
   customDensities: JSON.parse(localStorage.getItem('family-recipes-custom-densities')) || {},
 
   // Cooking focus state
