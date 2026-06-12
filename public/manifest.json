@@ -8,6 +8,15 @@
   "theme_color": "#D97706",
   "orientation": "any",
   "categories": ["food", "lifestyle"],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "icons": [
     {
       "src": "favicon.svg",

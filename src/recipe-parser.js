@@ -211,37 +211,49 @@ const parseYaml = (yamlText) =>
  * @param {string} sectionText
  * @returns {array}
  */
+/**
+ * Parses a single ingredient line (expects leading "- " to be removed or matching).
+ * @param {string} line - Ingredient line string, e.g. "- 1 cup flour"
+ * @returns {object}
+ */
+export const parseIngredientLine = (line) => {
+  const normalizedLine = normalizeVulgarFractions(line);
+  const match = normalizedLine.match(INGREDIENT_LINE_REGEX);
+  if (!match) {
+    return {
+      originalText: line.replace(/^\s*-\s+/, ''),
+      quantity: null,
+      rawQuantity: '',
+      unit: '',
+      name: line.replace(/^\s*-\s+/, ''),
+      scalable: false
+    };
+  }
+
+  const [_, rawQty, rawUnit, name] = match;
+  const quantity = rawQty ? parseFraction(rawQty) : null;
+
+  return {
+    originalText: line.replace(/^\s*-\s+/, ''),
+    quantity,
+    rawQuantity: rawQty || '',
+    unit: rawUnit ? rawUnit.toLowerCase().trim() : '',
+    name: name.trim(),
+    scalable: quantity !== null
+  };
+};
+
+/**
+ * Parses standard ingredients list from markdown body.
+ * @param {string} sectionText
+ * @returns {array}
+ */
 const parseIngredientsSection = (sectionText) =>
   sectionText
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line.startsWith('-'))
-    .map((line) => {
-      const normalizedLine = normalizeVulgarFractions(line);
-      const match = normalizedLine.match(INGREDIENT_LINE_REGEX);
-      if (!match) {
-        return {
-          originalText: line.replace(/^\s*-\s+/, ''),
-          quantity: null,
-          rawQuantity: '',
-          unit: '',
-          name: line.replace(/^\s*-\s+/, ''),
-          scalable: false
-        };
-      }
-
-      const [_, rawQty, rawUnit, name] = match;
-      const quantity = rawQty ? parseFraction(rawQty) : null;
-
-      return {
-        originalText: line.replace(/^\s*-\s+/, ''),
-        quantity,
-        rawQuantity: rawQty || '',
-        unit: rawUnit ? rawUnit.toLowerCase().trim() : '',
-        name: name.trim(),
-        scalable: quantity !== null
-      };
-    });
+    .map((line) => parseIngredientLine(line));
 
 /**
  * Parses instructions ordered list from markdown body.

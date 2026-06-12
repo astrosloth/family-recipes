@@ -92,11 +92,11 @@ const triggerScrapePipeline = () => {
       return;
     }
 
-    // Secure approach: Always inject content.js first to ensure it is active and listening!
+    // Secure approach: Always inject recipe-scraper.js and content.js to ensure listener is active!
     chrome.scripting
       .executeScript({
         target: { tabId: activeTab.id },
-        files: ['content.js']
+        files: ['recipe-scraper.js', 'content.js']
       })
       .then(() => {
         // Tiny delay to let the listener establish, then send message

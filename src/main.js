@@ -463,6 +463,31 @@ window.addEventListener('load', () => {
 
   parseRoute();
   initializeRecipes();
+
+  // Handle PWA Web Share Target parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const sharedText = urlParams.get('text');
+  const sharedUrlParam = urlParams.get('url');
+
+  let sharedUrl = '';
+  if (sharedUrlParam && sharedUrlParam.startsWith('http')) {
+    sharedUrl = sharedUrlParam;
+  } else if (sharedText) {
+    const urlMatch = sharedText.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      sharedUrl = urlMatch[0];
+    }
+  }
+
+  if (sharedUrl) {
+    // Clear query params from url bar so page refreshing does not trigger import loop
+    const cleanUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState({}, document.title, cleanUrl);
+
+    import('./state-store').then((m) => {
+      m.updateState({ view: 'create', importUrl: sharedUrl });
+    });
+  }
 });
 
 // --- GLOBAL RUNTIME EXCEPTION LISTENERS ---

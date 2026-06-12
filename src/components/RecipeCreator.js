@@ -111,11 +111,28 @@ const triggerFileDownload = (filename, text) => {
  * @param {HTMLElement} container
  */
 export const renderRecipeCreator = (container) => {
-  const { recipes, activeRecipeId, githubConfig } = getState();
+  const { recipes, activeRecipeId, githubConfig, importUrl } = getState();
   const hash = window.location.hash;
 
   // Detect if we are editing an existing recipe or creating a new one
   const isEditMode = hash.includes('?id=');
+
+  // Handle automatic url import if present in state (PWA share target flow)
+  if (!isEditMode && importUrl) {
+    // Clear it from the state immediately so it doesn't loop
+    import('../state-store').then((m) => {
+      m.updateState({ importUrl: null });
+    });
+    // Trigger import dynamically after the DOM is rendered
+    setTimeout(() => {
+      const importInput = document.getElementById('import-recipe-url');
+      if (importInput) {
+        importInput.value = importUrl;
+        const clipBtn = document.getElementById('btn-import-recipe');
+        if (clipBtn) clipBtn.click();
+      }
+    }, 150);
+  }
 
   // If editing but recipes list hasn't loaded yet on direct reload, show beautiful loader
   if (isEditMode && recipes.length === 0) {
@@ -192,6 +209,29 @@ export const renderRecipeCreator = (container) => {
           <i class="fa-solid fa-file-pen" style="color: hsl(var(--accent-primary-hsl)); margin-right: 12px;"></i>
           ${isEditMode ? `Edit Recipe: ${formState.title}` : 'Add Family Recipe'}
         </h1>
+        
+        ${
+          !isEditMode
+            ? `
+        <!-- Import from Web Target URL box -->
+        <div class="import-url-card" style="background: hsl(var(--card-bg-hsl)); border: 1px solid hsl(var(--border-color-hsl)); border-radius: 12px; padding: 16px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 12px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+          <h3 style="font-family: var(--font-serif); font-size: 16px; font-weight: 700; margin: 0; color: hsl(var(--text-primary-hsl)); display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-wand-magic-sparkles" style="color: hsl(var(--accent-primary-hsl));"></i>
+            Import Recipe from Website
+          </h3>
+          <p style="font-family: var(--font-sans); font-size: 12px; color: hsl(var(--text-secondary-hsl)); margin: 0; line-height: 1.4;">
+            Paste a recipe website URL (e.g. AllRecipes, FoodNetwork) to automatically clip the ingredients and directions!
+          </p>
+          <div style="display: flex; gap: 8px;">
+            <input type="url" id="import-recipe-url" class="form-input" placeholder="https://www.allrecipes.com/recipe/..." style="flex: 1;" />
+            <button type="button" class="btn btn-primary" id="btn-import-recipe" style="padding: 10px 16px; display: flex; align-items: center; gap: 8px; justify-content: center;">
+              <i class="fa-solid fa-circle-arrow-down"></i> Clip
+            </button>
+          </div>
+        </div>
+        `
+            : ''
+        }
         
         <!-- Tab Switches (Live Markdown Code Previews!) -->
         <div class="editor-tabs">
@@ -647,6 +687,144 @@ export const renderRecipeCreator = (container) => {
           `Failed to pull image: ${err.message}. Check the URL or try a different one.`,
           'error'
         );
+      }
+    });
+  }
+
+  // Import Recipe from website URL handler
+  const importBtn = document.getElementById('btn-import-recipe');
+  if (importBtn) {
+    importBtn.addEventListener('click', async () => {
+      const urlInput = document.getElementById('import-recipe-url');
+      const url = urlInput ? urlInput.value.trim() : '';
+
+      if (!url || !url.startsWith('http')) {
+        showToast('Please enter a valid website URL starting with http/https', 'error');
+        return;
+      }
+
+      showToast('Clipping recipe details...', 'info');
+      importBtn.disabled = true;
+      const originalBtnHtml = importBtn.innerHTML;
+      importBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Clipping...`;
+
+      try {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl);
+        if (response.status !== 200) {
+          throw new Error(`Failed to fetch webpage (HTTP ${response.status})`);
+        }
+        const html = await response.text();
+
+        // Parse HTML DOM
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        // Dynamically load shared scraper
+        const scraper = await import('../recipe-scraper.js');
+        const schema = scraper.extractSchemaRecipe(doc);
+
+        let parsed = null;
+        if (schema) {
+          parsed = {
+            title: schema.name || doc.title.split(/[-|]/)[0].trim(),
+            description: schema.description || '',
+            prepTime: scraper.normalizeDuration(schema.prepTime || schema.totalTime),
+            cookTime: scraper.normalizeDuration(schema.cookTime),
+            servings: scraper.normalizeYield(schema.recipeYield),
+            image: scraper.normalizeImage(schema.image),
+            categories: schema.recipeCategory
+              ? Array.isArray(schema.recipeCategory)
+                ? schema.recipeCategory
+                : [schema.recipeCategory]
+              : ['Main Course'],
+            tags: schema.keywords
+              ? Array.isArray(schema.keywords)
+                ? schema.keywords
+                : schema.keywords.split(',').map((s) => s.trim())
+              : [],
+            ingredients: Array.isArray(schema.recipeIngredient)
+              ? schema.recipeIngredient.map((i) => i.trim())
+              : [],
+            instructions: scraper.normalizeInstructions(schema.recipeInstructions),
+            notes: scraper.scrapeNotesFromDOM(doc),
+            isFallbackScrape: false
+          };
+        } else {
+          const fallback = scraper.scrapeDOMFallback(doc);
+          if (fallback && (fallback.ingredients.length > 0 || fallback.instructions.length > 0)) {
+            parsed = {
+              ...fallback,
+              isFallbackScrape: true
+            };
+          }
+        }
+
+        if (!parsed) {
+          throw new Error(
+            'Could not find any structured Schema.org Recipe metadata or parse recipe content on this webpage.'
+          );
+        }
+
+        // Prepopulate formState
+        formState.title = parsed.title || '';
+        formState.description = parsed.description || '';
+        formState.prepTime = parsed.prepTime || '20 mins';
+        formState.cookTime = parsed.cookTime || '30 mins';
+        formState.servings = parsed.servings || 4;
+        formState.image = parsed.image || 'images/placeholder.jpg';
+        formState.categories =
+          parsed.categories && parsed.categories.length > 0 ? parsed.categories : ['Main Course'];
+        formState.tags = parsed.tags || [];
+
+        // Parse ingredients into builder structure
+        const parserModule = await import('../recipe-parser.js');
+        formState.ingredients = parsed.ingredients.map((ingStr) => {
+          const cleanLine = ingStr.startsWith('-') ? ingStr : `- ${ingStr}`;
+          const parsedLine = parserModule.parseIngredientLine(cleanLine);
+          return {
+            quantity:
+              parsedLine.rawQuantity !== undefined
+                ? parsedLine.rawQuantity
+                : parsedLine.quantity || '',
+            unit: parsedLine.unit || '',
+            name: parsedLine.name || ingStr
+          };
+        });
+
+        // If no ingredients were successfully scraped, reset to one blank row
+        if (formState.ingredients.length === 0) {
+          formState.ingredients = [{ quantity: 1, unit: 'cup', name: '' }];
+        }
+
+        // Parse instructions into builder structure
+        formState.instructions = parsed.instructions.map((stepText, idx) => ({
+          step: idx + 1,
+          text: stepText
+        }));
+
+        if (formState.instructions.length === 0) {
+          formState.instructions = [{ step: 1, text: '' }];
+        }
+
+        // Parse notes into builder structure
+        formState.notes = parsed.notes ? parsed.notes.map((noteText) => ({ text: noteText })) : [];
+
+        showToast(
+          parsed.isFallbackScrape
+            ? 'Webpage scanned using fallback layout parsing!'
+            : 'Recipe imported successfully from Schema.org metadata!',
+          'success'
+        );
+
+        // Re-render
+        renderRecipeCreator(container);
+      } catch (err) {
+        console.error('[Recipe Creator] Import failed:', err);
+        showToast(`Import Failed: ${err.message}`, 'error');
+      } finally {
+        importBtn.disabled = false;
+        importBtn.innerHTML = originalBtnHtml;
       }
     });
   }
