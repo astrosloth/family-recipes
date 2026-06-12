@@ -72,7 +72,7 @@ export const renderDashboard = (container) => {
 
   // 4. Render Layout HTML
   const showTagCloud = !document.getElementById('tag-cloud')?.classList.contains('hidden');
-  const favoritesSet = new Set(favorites);
+  const favoritesSet = new Set(favorites.map(String));
 
   container.innerHTML = `
     <div class="hero-section">
@@ -134,7 +134,7 @@ export const renderDashboard = (container) => {
     <div class="recipes-grid">
       ${filteredRecipes
         .map((recipe) => {
-          const isFavorite = favoritesSet.has(recipe.id);
+          const isFavorite = favoritesSet.has(String(recipe.id));
 
           // 4a. Handle Fault-Tolerant Malformed Recipe Warning Card
           if (!recipe.success) {
@@ -262,7 +262,7 @@ export const renderDashboard = (container) => {
       const favId = e.currentTarget.getAttribute('data-fav-id');
       const isFav = favoritesSet.has(favId);
 
-      const newFavorites = isFav ? favorites.filter((f) => f !== favId) : [...favorites, favId];
+      const newFavorites = isFav ? favorites.filter((f) => String(f) !== favId) : [...favorites, favId];
 
       updateState({ favorites: newFavorites });
     });
